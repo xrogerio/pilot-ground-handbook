@@ -24,10 +24,7 @@ export default function EditAircraft() {
 
   const [formData, setFormData] = useState<SectionFormData>({
     title: '',
-    description: '',
-    imageUrl: '',
-    table: null,
-    chart: null,
+    subsections: [],
   })
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -57,27 +54,90 @@ export default function EditAircraft() {
           .maybeSingle()
 
         if (section) {
-          const [imagesRes, tablesRes, graphsRes] = await Promise.all([
-            supabase.from('images').select('*').eq('section_id', section.id).limit(1),
-            supabase.from('tables').select('*').eq('section_id', section.id).limit(1),
-            supabase.from('graphs').select('*').eq('section_id', section.id).limit(1),
-          ])
+          const { data: subsections } = await (supabase as any)
+            .from('subsections')
+            .select('*')
+            .eq('section_id', section.id)
+            .order('order_index', { ascending: true })
 
-          setFormData({
-            title: section.section_title || '',
-            description: section.content || '',
-            imageUrl: imagesRes.data?.[0]?.image_url || '',
-            table: (tablesRes.data?.[0]?.table_data as any) || null,
-            chart: (graphsRes.data?.[0]?.graph_data as any) || null,
-          })
+          if (subsections && subsections.length > 0) {
+            const subIds = subsections.map((s: any) => s.id)
+            const [imagesRes, tablesRes, graphsRes] = await Promise.all([
+              (supabase as any).from('images').select('*').in('subsection_id', subIds),
+              (supabase as any).from('tables').select('*').in('subsection_id', subIds),
+              (supabase as any).from('graphs').select('*').in('subsection_id', subIds),
+            ])
+
+            const formattedSubsections = subsections.map((sub: any) => ({
+              id: sub.id,
+              title: sub.title || '',
+              description: sub.description || '',
+              images:
+                imagesRes.data
+                  ?.filter((img: any) => img.subsection_id === sub.id)
+                  .map((img: any) => ({ id: img.id, url: img.image_url })) || [],
+              tables:
+                tablesRes.data
+                  ?.filter((tbl: any) => tbl.subsection_id === sub.id)
+                  .map((tbl: any) => ({ id: tbl.id, ...(tbl.table_data as any) })) || [],
+              charts:
+                graphsRes.data
+                  ?.filter((g: any) => g.subsection_id === sub.id)
+                  .map((g: any) => ({ id: g.id, type: g.graph_type, ...(g.graph_data as any) })) ||
+                [],
+            }))
+
+            setFormData({
+              title: section.section_title || '',
+              subsections: formattedSubsections,
+            })
+          } else {
+            // Legacy fetch
+            const [imagesRes, tablesRes, graphsRes] = await Promise.all([
+              supabase.from('images').select('*').eq('section_id', section.id),
+              supabase.from('tables').select('*').eq('section_id', section.id),
+              supabase.from('graphs').select('*').eq('section_id', section.id),
+            ])
+
+            if (
+              section.content ||
+              imagesRes.data?.length ||
+              tablesRes.data?.length ||
+              graphsRes.data?.length
+            ) {
+              setFormData({
+                title: section.section_title || '',
+                subsections: [
+                  {
+                    id: crypto.randomUUID(),
+                    title: 'Visão Geral',
+                    description: section.content || '',
+                    images:
+                      imagesRes.data?.map((img) => ({ id: img.id, url: img.image_url })) || [],
+                    tables:
+                      tablesRes.data?.map((tbl) => ({ id: tbl.id, ...(tbl.table_data as any) })) ||
+                      [],
+                    charts:
+                      graphsRes.data?.map((g) => ({
+                        id: g.id,
+                        type: g.graph_type,
+                        ...(g.graph_data as any),
+                      })) || [],
+                  },
+                ],
+              })
+            } else {
+              setFormData({
+                title: section.section_title || '',
+                subsections: [],
+              })
+            }
+          }
         } else {
           const defaultTitle = HANDBOOK_SECTIONS.find((s) => s.id === activeSectionId)?.title || ''
           setFormData({
             title: defaultTitle,
-            description: '',
-            imageUrl: '',
-            table: null,
-            chart: null,
+            subsections: [],
           })
         }
       } catch (err) {
@@ -107,7 +167,7 @@ export default function EditAircraft() {
             aircraft_id: id,
             section_number: parseInt(activeSectionId),
             section_title: formData.title || '',
-            content: formData.description || '',
+            content: '',
           })
           .select()
           .single()
@@ -118,7 +178,6 @@ export default function EditAircraft() {
           .from('sections')
           .update({
             section_title: formData.title || '',
-            content: formData.description || '',
           })
           .eq('id', section.id)
           .select()
@@ -126,27 +185,57 @@ export default function EditAircraft() {
         if (res.error) throw res.error
       }
 
-      await supabase.from('images').delete().eq('section_id', section.id)
-      if (formData.imageUrl) {
-        await supabase
-          .from('images')
-          .insert({ section_id: section.id, image_url: formData.imageUrl })
-      }
+      await (supabase as any).from('images').delete().eq('section_id', section.id)
+      await (supabase as any).from('tables').delete().eq('section_id', section.id)
+      await (supabase as any).from('graphs').delete().eq('section_id', section.id)
+      await (supabase as any).from('subsections').delete().eq('section_id', section.id)
 
-      await supabase.from('tables').delete().eq('section_id', section.id)
-      if (formData.table) {
-        await supabase
-          .from('tables')
-          .insert({ section_id: section.id, table_data: formData.table as any })
-      }
+      for (let i = 0; i < formData.subsections.length; i++) {
+        const sub = formData.subsections[i]
+        const { data: newSub, error: subErr } = await (supabase as any)
+          .from('subsections')
+          .insert({
+            section_id: section.id,
+            title: sub.title,
+            description: sub.description,
+            order_index: i,
+          })
+          .select()
+          .single()
 
-      await supabase.from('graphs').delete().eq('section_id', section.id)
-      if (formData.chart) {
-        await supabase.from('graphs').insert({
-          section_id: section.id,
-          graph_type: formData.chart.type,
-          graph_data: formData.chart as any,
-        })
+        if (subErr) throw subErr
+
+        const validImages = sub.images.filter((img) => img.url.trim() !== '')
+        if (validImages.length > 0) {
+          await (supabase as any).from('images').insert(
+            validImages.map((img) => ({
+              section_id: section.id,
+              subsection_id: newSub.id,
+              image_url: img.url,
+            })),
+          )
+        }
+
+        if (sub.tables.length > 0) {
+          await (supabase as any).from('tables').insert(
+            sub.tables.map((tbl) => ({
+              section_id: section.id,
+              subsection_id: newSub.id,
+              table_data: tbl as any,
+            })),
+          )
+        }
+
+        if (sub.charts.length > 0) {
+          await (supabase as any).from('graphs').insert(
+            sub.charts.map((chart) => ({
+              section_id: section.id,
+              subsection_id: newSub.id,
+              graph_type: chart.type,
+              graph_data: chart as any,
+            })),
+          )
+        }
       }
 
       toast({ title: 'Sucesso', description: 'Seção salva com sucesso na base de dados.' })

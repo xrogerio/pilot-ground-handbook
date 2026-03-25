@@ -42,6 +42,13 @@ export function HandbookContent({ blocks }: HandbookContentProps) {
     <div className="space-y-8 pb-10">
       {blocks.map((block, index) => {
         switch (block.type) {
+          case 'subsection_title':
+            return (
+              <h3 key={index} className="text-2xl font-bold text-slate-800 mt-10 mb-4 first:mt-0">
+                {block.title}
+              </h3>
+            )
+
           case 'text':
             return (
               <p key={index} className="text-slate-700 leading-relaxed text-lg">

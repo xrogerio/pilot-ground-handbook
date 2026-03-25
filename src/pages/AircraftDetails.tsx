@@ -42,53 +42,115 @@ export default function AircraftDetails() {
         if (error) throw error
 
         if (section && mounted) {
-          const [imagesRes, tablesRes, graphsRes] = await Promise.all([
-            supabase.from('images').select('*').eq('section_id', section.id),
-            supabase.from('tables').select('*').eq('section_id', section.id),
-            supabase.from('graphs').select('*').eq('section_id', section.id),
-          ])
+          const { data: subsections } = await (supabase as any)
+            .from('subsections')
+            .select('*')
+            .eq('section_id', section.id)
+            .order('order_index', { ascending: true })
 
           const newBlocks: ContentBlock[] = []
 
-          if (section.content) {
-            newBlocks.push({ type: 'text', content: section.content })
-          }
+          if (subsections && subsections.length > 0) {
+            const subIds = subsections.map((s: any) => s.id)
+            const [imagesRes, tablesRes, graphsRes] = await Promise.all([
+              (supabase as any).from('images').select('*').in('subsection_id', subIds),
+              (supabase as any).from('tables').select('*').in('subsection_id', subIds),
+              (supabase as any).from('graphs').select('*').in('subsection_id', subIds),
+            ])
 
-          imagesRes.data?.forEach((img) => {
-            newBlocks.push({ type: 'image', url: img.image_url })
-          })
+            for (const sub of subsections) {
+              if (sub.title) {
+                newBlocks.push({ type: 'subsection_title', title: sub.title })
+              }
+              if (sub.description) {
+                newBlocks.push({ type: 'text', content: sub.description })
+              }
 
-          tablesRes.data?.forEach((tbl) => {
-            newBlocks.push({ type: 'table', ...(tbl.table_data as any) })
-          })
+              const subImages =
+                imagesRes.data?.filter((img: any) => img.subsection_id === sub.id) || []
+              subImages.forEach((img: any) => {
+                newBlocks.push({ type: 'image', url: img.image_url })
+              })
 
-          graphsRes.data?.forEach((g) => {
-            const chartData = g.graph_data as any
-            const chartType = chartData.type || g.graph_type || 'line'
+              const subTables =
+                tablesRes.data?.filter((tbl: any) => tbl.subsection_id === sub.id) || []
+              subTables.forEach((tbl: any) => {
+                newBlocks.push({ type: 'table', ...(tbl.table_data as any) })
+              })
 
-            // Format and validate data to ensure numerical values
-            const validData = Array.isArray(chartData.data)
-              ? chartData.data.map((d: any) => ({
-                  ...d,
-                  label: String(d.label || ''),
-                  value: Number(d.value) || 0,
-                }))
-              : []
+              const subGraphs = graphsRes.data?.filter((g: any) => g.subsection_id === sub.id) || []
+              subGraphs.forEach((g: any) => {
+                const chartData = g.graph_data as any
+                const chartType = chartData.type || g.graph_type || 'line'
+                const validData = Array.isArray(chartData.data)
+                  ? chartData.data.map((d: any) => ({
+                      ...d,
+                      label: String(d.label || ''),
+                      value: Number(d.value) || 0,
+                    }))
+                  : []
 
-            const config = {
-              value: { label: 'Valor', color: 'hsl(var(--primary))' },
+                const config = {
+                  value: { label: 'Valor', color: 'hsl(var(--primary))' },
+                }
+
+                newBlocks.push({
+                  type: 'chart',
+                  title: chartData.title || 'Gráfico de Desempenho',
+                  chartType: chartType as 'line' | 'bar' | 'pie',
+                  data: validData,
+                  config,
+                  xKey: 'label',
+                  lines: [{ key: 'value', color: 'var(--color-value)' }],
+                })
+              })
+            }
+          } else {
+            // Legacy format fallback
+            const [imagesRes, tablesRes, graphsRes] = await Promise.all([
+              supabase.from('images').select('*').eq('section_id', section.id),
+              supabase.from('tables').select('*').eq('section_id', section.id),
+              supabase.from('graphs').select('*').eq('section_id', section.id),
+            ])
+
+            if (section.content) {
+              newBlocks.push({ type: 'text', content: section.content })
             }
 
-            newBlocks.push({
-              type: 'chart',
-              title: chartData.title || 'Gráfico de Desempenho',
-              chartType: chartType as 'line' | 'bar' | 'pie',
-              data: validData,
-              config,
-              xKey: 'label',
-              lines: [{ key: 'value', color: 'var(--color-value)' }],
+            imagesRes.data?.forEach((img) => {
+              newBlocks.push({ type: 'image', url: img.image_url })
             })
-          })
+
+            tablesRes.data?.forEach((tbl) => {
+              newBlocks.push({ type: 'table', ...(tbl.table_data as any) })
+            })
+
+            graphsRes.data?.forEach((g) => {
+              const chartData = g.graph_data as any
+              const chartType = chartData.type || g.graph_type || 'line'
+              const validData = Array.isArray(chartData.data)
+                ? chartData.data.map((d: any) => ({
+                    ...d,
+                    label: String(d.label || ''),
+                    value: Number(d.value) || 0,
+                  }))
+                : []
+
+              const config = {
+                value: { label: 'Valor', color: 'hsl(var(--primary))' },
+              }
+
+              newBlocks.push({
+                type: 'chart',
+                title: chartData.title || 'Gráfico de Desempenho',
+                chartType: chartType as 'line' | 'bar' | 'pie',
+                data: validData,
+                config,
+                xKey: 'label',
+                lines: [{ key: 'value', color: 'var(--color-value)' }],
+              })
+            })
+          }
 
           if (newBlocks.length === 0) {
             newBlocks.push({

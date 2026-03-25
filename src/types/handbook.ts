@@ -8,6 +8,10 @@ export interface HandbookSection {
 
 export type ContentBlock =
   | {
+      type: 'subsection_title'
+      title: string
+    }
+  | {
       type: 'text'
       content: string
     }
