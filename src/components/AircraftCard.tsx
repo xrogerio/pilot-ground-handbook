@@ -40,22 +40,26 @@ export function AircraftCard({ aircraft }: AircraftCardProps) {
       <CardHeader className="p-5 pb-2">
         <CardTitle className="text-xl font-bold text-primary">{aircraft.name}</CardTitle>
       </CardHeader>
-      <CardContent className="p-5 pt-0 pb-5">
-        <div className="flex items-center justify-between mt-2 mb-3">
-          <span className="text-sm font-medium text-muted-foreground">Seções Preenchidas</span>
-          <Badge
-            variant={isComplete ? 'default' : 'secondary'}
-            className={
-              isComplete
-                ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
-                : 'bg-blue-100 text-blue-800 hover:bg-blue-200 border-none'
-            }
-          >
-            {aircraft.completedSections}/{aircraft.totalSections}
-          </Badge>
-        </div>
-        <Progress value={progress} className="h-2" />
-      </CardContent>
+
+      {role === 'aluno' && (
+        <CardContent className="p-5 pt-0 pb-5">
+          <div className="flex items-center justify-between mt-2 mb-3">
+            <span className="text-sm font-medium text-muted-foreground">Seções Preenchidas</span>
+            <Badge
+              variant={isComplete ? 'default' : 'secondary'}
+              className={
+                isComplete
+                  ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
+                  : 'bg-blue-100 text-blue-800 hover:bg-blue-200 border-none'
+              }
+            >
+              {aircraft.completedSections}/{aircraft.totalSections}
+            </Badge>
+          </div>
+          <Progress value={progress} className="h-2" />
+        </CardContent>
+      )}
+
       <CardFooter className="p-5 pt-0 flex gap-2">
         <Button className="flex-1 active:scale-95 transition-transform font-semibold" asChild>
           <Link to={`/aircraft/${aircraft.id}`}>Visualizar Detalhes</Link>
