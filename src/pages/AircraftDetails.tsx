@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, Pencil, Settings2 } from 'lucide-react'
 import { useAppContext } from '@/contexts/AppContext'
 import { Button } from '@/components/ui/button'
@@ -7,15 +7,106 @@ import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { HandbookSidebar } from '@/components/HandbookSidebar'
 import { HandbookContent } from '@/components/HandbookContent'
-import { HANDBOOK_SECTIONS, getMockHandbookContent } from '@/data/mockHandbookData'
+import { HANDBOOK_SECTIONS } from '@/data/mockHandbookData'
+import { supabase } from '@/lib/supabase/client'
+import { ContentBlock } from '@/types/handbook'
 
 export default function AircraftDetails() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { role, aircrafts } = useAppContext()
-  const [activeSectionId, setActiveSectionId] = useState<string>(HANDBOOK_SECTIONS[0].id)
+
+  const [activeSectionId, setActiveSectionId] = useState<string>(
+    searchParams.get('section') || HANDBOOK_SECTIONS[0].id,
+  )
+  const [blocks, setBlocks] = useState<ContentBlock[]>([])
+  const [loadingContent, setLoadingContent] = useState(true)
 
   const aircraft = aircrafts.find((a) => a.id === id)
+
+  useEffect(() => {
+    if (!aircraft) return
+    let mounted = true
+
+    const fetchContent = async () => {
+      setLoadingContent(true)
+      try {
+        const { data: section, error } = await supabase
+          .from('sections')
+          .select('*')
+          .eq('aircraft_id', aircraft.id)
+          .eq('section_number', parseInt(activeSectionId))
+          .maybeSingle()
+
+        if (error) throw error
+
+        if (section && mounted) {
+          const [imagesRes, tablesRes, graphsRes] = await Promise.all([
+            supabase.from('images').select('*').eq('section_id', section.id),
+            supabase.from('tables').select('*').eq('section_id', section.id),
+            supabase.from('graphs').select('*').eq('section_id', section.id),
+          ])
+
+          const newBlocks: ContentBlock[] = []
+
+          if (section.content) {
+            newBlocks.push({ type: 'text', content: section.content })
+          }
+
+          imagesRes.data?.forEach((img) => {
+            newBlocks.push({ type: 'image', url: img.image_url })
+          })
+
+          tablesRes.data?.forEach((tbl) => {
+            newBlocks.push({ type: 'table', ...(tbl.table_data as any) })
+          })
+
+          graphsRes.data?.forEach((g) => {
+            const chartData = g.graph_data as any
+            const config = {
+              value: { label: 'Valor', color: 'hsl(var(--primary))' },
+            }
+            newBlocks.push({
+              type: 'chart',
+              title: chartData.title,
+              data: chartData.data,
+              config,
+              xKey: 'label',
+              lines: [{ key: 'value', color: 'var(--color-value)' }],
+            })
+          })
+
+          if (newBlocks.length === 0) {
+            newBlocks.push({
+              type: 'text',
+              content: 'Nenhum conteúdo cadastrado nesta seção.',
+            })
+          }
+
+          setBlocks(newBlocks)
+        } else if (mounted) {
+          setBlocks([
+            {
+              type: 'text',
+              content:
+                'As informações completas para esta seção específica estão atualmente sendo integradas ao sistema digital ou referem-se a suplementos específicos instalados. Por favor, consulte o documento físico da aeronave a bordo para dados imediatamente necessários.',
+            },
+          ])
+        }
+      } catch (err) {
+        console.error(err)
+        if (mounted) setBlocks([])
+      } finally {
+        if (mounted) setLoadingContent(false)
+      }
+    }
+
+    fetchContent()
+    return () => {
+      mounted = false
+    }
+  }, [aircraft, activeSectionId])
 
   if (!aircraft) {
     return (
@@ -33,11 +124,9 @@ export default function AircraftDetails() {
   }
 
   const activeSection = HANDBOOK_SECTIONS.find((s) => s.id === activeSectionId)
-  const blocks = getMockHandbookContent(aircraft.id, activeSectionId)
 
   return (
     <div className="space-y-6 lg:space-y-8 animate-fade-in-up">
-      {/* Header Breadcrumb & Status */}
       <div>
         <Button
           variant="ghost"
@@ -71,7 +160,6 @@ export default function AircraftDetails() {
         </div>
       </div>
 
-      {/* Main Layout: Sidebar + Content */}
       <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 items-start">
         <HandbookSidebar activeSectionId={activeSectionId} onSelect={setActiveSectionId} />
 
@@ -108,9 +196,14 @@ export default function AircraftDetails() {
               )}
             </div>
 
-            {/* Content Wrapper with Key for animation re-triggering */}
             <div key={activeSectionId} className="animate-fade-in">
-              <HandbookContent blocks={blocks} />
+              {loadingContent ? (
+                <div className="flex h-64 items-center justify-center">
+                  <Settings2 className="w-8 h-8 animate-spin text-slate-300" />
+                </div>
+              ) : (
+                <HandbookContent blocks={blocks} />
+              )}
             </div>
           </Card>
         </div>

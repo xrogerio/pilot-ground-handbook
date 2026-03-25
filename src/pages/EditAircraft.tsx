@@ -1,131 +1,217 @@
-import { useState, useEffect, useMemo } from 'react'
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
-import { Save, X } from 'lucide-react'
-import { useAppContext } from '@/contexts/AppContext'
+import { useState, useEffect } from 'react'
+import { useParams, useSearchParams, Link, useNavigate } from 'react-router-dom'
+import { ArrowLeft, Save, Loader2, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
-import { toast } from 'sonner'
-import { HANDBOOK_SECTIONS, getMockHandbookContent } from '@/data/mockHandbookData'
+import { useToast } from '@/hooks/use-toast'
 import { SectionEditor } from '@/components/editor/SectionEditor'
+import { HandbookSidebar } from '@/components/HandbookSidebar'
 import { SectionFormData } from '@/types/editor'
+import { supabase } from '@/lib/supabase/client'
+import { HANDBOOK_SECTIONS } from '@/data/mockHandbookData'
+import { useAppContext } from '@/contexts/AppContext'
 
 export default function EditAircraft() {
   const { id } = useParams<{ id: string }>()
-  const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const { role, aircrafts } = useAppContext()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const { toast } = useToast()
+  const { aircrafts, role } = useAppContext()
 
-  const aircraft = useMemo(() => aircrafts.find((a) => a.id === id), [aircrafts, id])
-  const [formData, setFormData] = useState<Record<string, SectionFormData>>({})
-  const [activeTab, setActiveTab] = useState(searchParams.get('section') || HANDBOOK_SECTIONS[0].id)
+  const sectionQuery = searchParams.get('section')
+  const [activeSectionId, setActiveSectionId] = useState<string>(
+    sectionQuery || HANDBOOK_SECTIONS[0].id,
+  )
+
+  const [formData, setFormData] = useState<SectionFormData>({
+    title: '',
+    description: '',
+    imageUrl: '',
+    table: null,
+    chart: null,
+  })
+  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
+
+  const aircraft = aircrafts.find((a) => a.id === id)
 
   useEffect(() => {
-    if (role !== 'adm') {
-      toast.error('Acesso negado. Apenas administradores podem editar.')
-      navigate(`/aircraft/${id}`)
-      return
+    if (role === 'aluno') {
+      navigate('/')
     }
+  }, [role, navigate])
 
-    if (aircraft) {
-      const initialData: Record<string, SectionFormData> = {}
-      HANDBOOK_SECTIONS.forEach((section) => {
-        const blocks = getMockHandbookContent(aircraft.id, section.id)
-        const description = blocks
-          .filter((b) => b.type === 'text')
-          .map((b) => b.content)
-          .join('\n\n')
-        const imageUrl = blocks.find((b) => b.type === 'image')?.url || ''
-        const table = (blocks.find((b) => b.type === 'table') as any) || null
-        const chartBlock = (blocks.find((b) => b.type === 'chart') as any) || null
+  useEffect(() => {
+    setSearchParams({ section: activeSectionId }, { replace: true })
+  }, [activeSectionId, setSearchParams])
 
-        let chart = null
-        if (chartBlock) {
-          chart = {
-            title: chartBlock.title,
-            type: 'line' as const,
-            data: chartBlock.data.map((d: any) => ({
-              label: d[chartBlock.xKey]?.toString() || '',
-              value: d[chartBlock.lines?.[0]?.key] || 0,
-            })),
-          }
+  useEffect(() => {
+    if (!id) return
+    const fetchSectionData = async () => {
+      setLoading(true)
+      try {
+        const { data: section } = await supabase
+          .from('sections')
+          .select('*')
+          .eq('aircraft_id', id)
+          .eq('section_number', parseInt(activeSectionId))
+          .maybeSingle()
+
+        if (section) {
+          const [imagesRes, tablesRes, graphsRes] = await Promise.all([
+            supabase.from('images').select('*').eq('section_id', section.id).limit(1),
+            supabase.from('tables').select('*').eq('section_id', section.id).limit(1),
+            supabase.from('graphs').select('*').eq('section_id', section.id).limit(1),
+          ])
+
+          setFormData({
+            title: section.section_title || '',
+            description: section.content || '',
+            imageUrl: imagesRes.data?.[0]?.image_url || '',
+            table: (tablesRes.data?.[0]?.table_data as any) || null,
+            chart: (graphsRes.data?.[0]?.graph_data as any) || null,
+          })
+        } else {
+          const defaultTitle = HANDBOOK_SECTIONS.find((s) => s.id === activeSectionId)?.title || ''
+          setFormData({
+            title: defaultTitle,
+            description: '',
+            imageUrl: '',
+            table: null,
+            chart: null,
+          })
         }
-
-        initialData[section.id] = {
-          title: section.title,
-          description,
-          imageUrl,
-          table: table
-            ? {
-                title: table.title,
-                headers: [...table.headers],
-                rows: table.rows.map((r: any[]) => [...r]),
-              }
-            : null,
-          chart,
-        }
-      })
-      setFormData(initialData)
+      } catch (err) {
+        console.error('Error fetching section', err)
+      } finally {
+        setLoading(false)
+      }
     }
-  }, [id, aircraft, role, navigate])
+    fetchSectionData()
+  }, [id, activeSectionId])
 
-  if (!aircraft || Object.keys(formData).length === 0) return null
+  const handleSave = async () => {
+    if (!id) return
+    setSaving(true)
+    try {
+      let { data: section } = await supabase
+        .from('sections')
+        .select('id')
+        .eq('aircraft_id', id)
+        .eq('section_number', parseInt(activeSectionId))
+        .maybeSingle()
 
-  const handleSave = () => {
-    toast.success('Alterações salvas com sucesso!')
-    navigate(`/aircraft/${id}`)
+      if (!section) {
+        const res = await supabase
+          .from('sections')
+          .insert({
+            aircraft_id: id,
+            section_number: parseInt(activeSectionId),
+            section_title: formData.title || '',
+            content: formData.description || '',
+          })
+          .select()
+          .single()
+        if (res.error) throw res.error
+        section = res.data
+      } else {
+        const res = await supabase
+          .from('sections')
+          .update({
+            section_title: formData.title || '',
+            content: formData.description || '',
+          })
+          .eq('id', section.id)
+          .select()
+          .single()
+        if (res.error) throw res.error
+      }
+
+      await supabase.from('images').delete().eq('section_id', section.id)
+      if (formData.imageUrl) {
+        await supabase
+          .from('images')
+          .insert({ section_id: section.id, image_url: formData.imageUrl })
+      }
+
+      await supabase.from('tables').delete().eq('section_id', section.id)
+      if (formData.table) {
+        await supabase
+          .from('tables')
+          .insert({ section_id: section.id, table_data: formData.table as any })
+      }
+
+      await supabase.from('graphs').delete().eq('section_id', section.id)
+      if (formData.chart) {
+        await supabase
+          .from('graphs')
+          .insert({
+            section_id: section.id,
+            graph_type: formData.chart.type,
+            graph_data: formData.chart as any,
+          })
+      }
+
+      toast({ title: 'Sucesso', description: 'Seção salva com sucesso na base de dados.' })
+    } catch (err) {
+      console.error(err)
+      toast({ title: 'Erro', description: 'Erro ao salvar seção.', variant: 'destructive' })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (!aircraft && !loading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-32 text-center">
+        <AlertCircle className="w-10 h-10 text-red-400 mb-4" />
+        <h2 className="text-2xl font-bold text-primary mb-4">Aeronave não encontrada</h2>
+        <Button onClick={() => navigate('/')} variant="outline" className="gap-2">
+          <ArrowLeft className="w-4 h-4" /> Voltar
+        </Button>
+      </div>
+    )
   }
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto pb-20 animate-fade-in-up">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="space-y-6 lg:space-y-8 animate-fade-in-up">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-4 pb-6 border-b border-slate-200">
         <div>
-          <h1 className="text-3xl font-bold text-primary">Editar Manual</h1>
-          <p className="text-muted-foreground">{aircraft.name}</p>
-        </div>
-        <div className="flex gap-3 w-full sm:w-auto">
-          <Button
-            variant="outline"
-            onClick={() => navigate(`/aircraft/${id}`)}
-            className="flex-1 sm:flex-none"
-          >
-            <X className="w-4 h-4 mr-2" /> Cancelar
+          <Button variant="ghost" className="mb-4 -ml-4" asChild>
+            <Link to={`/aircraft/${id}?section=${activeSectionId}`}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Voltar para {aircraft?.name || 'Aeronave'}
+            </Link>
           </Button>
-          <Button onClick={handleSave} className="flex-1 sm:flex-none">
-            <Save className="w-4 h-4 mr-2" /> Salvar
-          </Button>
+          <h1 className="text-3xl md:text-4xl font-extrabold text-primary tracking-tight">
+            Modo de Edição
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Seção atual: {HANDBOOK_SECTIONS.find((s) => s.id === activeSectionId)?.title}
+          </p>
         </div>
+        <Button
+          onClick={handleSave}
+          disabled={saving}
+          className="gap-2 shrink-0 bg-blue-600 hover:bg-blue-700"
+        >
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+          Salvar Alterações
+        </Button>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <ScrollArea className="w-full bg-white rounded-xl shadow-sm border border-slate-200 p-1 mb-6">
-          <TabsList className="flex w-max min-w-full justify-start bg-transparent h-auto p-1 gap-1">
-            {HANDBOOK_SECTIONS.map((section) => (
-              <TabsTrigger
-                key={section.id}
-                value={section.id}
-                className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 data-[state=active]:shadow-sm rounded-lg px-4 py-2 text-sm font-medium transition-all"
-              >
-                {section.title}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-          <ScrollBar orientation="horizontal" />
-        </ScrollArea>
+      <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 items-start">
+        <HandbookSidebar activeSectionId={activeSectionId} onSelect={setActiveSectionId} />
 
-        {HANDBOOK_SECTIONS.map((section) => (
-          <TabsContent
-            key={section.id}
-            value={section.id}
-            className="mt-0 focus-visible:outline-none focus-visible:ring-0"
-          >
-            <SectionEditor
-              data={formData[section.id]}
-              onChange={(newData) => setFormData((prev) => ({ ...prev, [section.id]: newData }))}
-            />
-          </TabsContent>
-        ))}
-      </Tabs>
+        <div className="flex-1 w-full min-w-0">
+          {loading ? (
+            <div className="flex h-64 items-center justify-center bg-white rounded-2xl border border-slate-200">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          ) : (
+            <SectionEditor data={formData} onChange={setFormData} />
+          )}
+        </div>
+      </div>
     </div>
   )
 }
