@@ -16,19 +16,28 @@ interface AircraftCardProps {
 export function AircraftCard({ aircraft }: AircraftCardProps) {
   const { role, deleteAircraft } = useAppContext()
   const { toast } = useToast()
-  const progress = (aircraft.completedSections / aircraft.totalSections) * 100
-  const isComplete = aircraft.completedSections === aircraft.totalSections
 
-  const handleDelete = () => {
-    deleteAircraft(aircraft.id)
-    toast({
-      title: 'Aeronave excluída',
-      description: `${aircraft.name} foi removida com sucesso.`,
-    })
+  const progress = aircraft.progress
+  const isComplete = progress === 100
+
+  const handleDelete = async () => {
+    try {
+      await deleteAircraft(aircraft.id)
+      toast({
+        title: 'Aeronave excluída',
+        description: `${aircraft.name} foi removida com sucesso.`,
+      })
+    } catch (error) {
+      toast({
+        title: 'Erro ao excluir',
+        description: 'Não foi possível excluir a aeronave.',
+        variant: 'destructive',
+      })
+    }
   }
 
   return (
-    <Card className="overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-elevation group animate-fade-in-up">
+    <Card className="overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-lg group animate-fade-in flex flex-col h-full">
       <AspectRatio ratio={16 / 9} className="bg-muted overflow-hidden">
         <img
           src={aircraft.imageUrl}
@@ -37,14 +46,14 @@ export function AircraftCard({ aircraft }: AircraftCardProps) {
           loading="lazy"
         />
       </AspectRatio>
-      <CardHeader className="p-5 pb-2">
+      <CardHeader className="p-5 pb-2 flex-grow">
         <CardTitle className="text-xl font-bold text-primary">{aircraft.name}</CardTitle>
       </CardHeader>
 
       {role === 'aluno' && (
         <CardContent className="p-5 pt-0 pb-5">
           <div className="flex items-center justify-between mt-2 mb-3">
-            <span className="text-sm font-medium text-muted-foreground">Seções Preenchidas</span>
+            <span className="text-sm font-medium text-muted-foreground">Progresso</span>
             <Badge
               variant={isComplete ? 'default' : 'secondary'}
               className={
@@ -53,14 +62,14 @@ export function AircraftCard({ aircraft }: AircraftCardProps) {
                   : 'bg-blue-100 text-blue-800 hover:bg-blue-200 border-none'
               }
             >
-              {aircraft.completedSections}/{aircraft.totalSections}
+              {progress}%
             </Badge>
           </div>
           <Progress value={progress} className="h-2" />
         </CardContent>
       )}
 
-      <CardFooter className="p-5 pt-0 flex gap-2">
+      <CardFooter className="p-5 pt-0 flex gap-2 mt-auto">
         <Button className="flex-1 active:scale-95 transition-transform font-semibold" asChild>
           <Link to={`/aircraft/${aircraft.id}`}>Visualizar Detalhes</Link>
         </Button>
@@ -73,14 +82,11 @@ export function AircraftCard({ aircraft }: AircraftCardProps) {
                     variant="outline"
                     size="icon"
                     className="active:scale-95 transition-transform hover:bg-accent hover:text-accent-foreground"
-                    onClick={() => {
-                      toast({
-                        title: 'Modo de Edição',
-                        description: `Editando ${aircraft.name}...`,
-                      })
-                    }}
+                    asChild
                   >
-                    <Pencil className="w-4 h-4" />
+                    <Link to={`/aircraft/${aircraft.id}/edit`}>
+                      <Pencil className="w-4 h-4" />
+                    </Link>
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>Editar Aeronave</TooltipContent>

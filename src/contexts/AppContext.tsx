@@ -1,65 +1,130 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react'
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { useAuth } from '@/hooks/use-auth'
+import { supabase } from '@/lib/supabase/client'
 
 export type Role = 'adm' | 'aluno'
 
 export interface Aircraft {
   id: string
   name: string
-  completedSections: number
-  totalSections: number
+  progress: number
   imageUrl: string
   linked: boolean
 }
 
-const INITIAL_AIRCRAFTS: Aircraft[] = [
-  {
-    id: '1',
-    name: 'Tecnam P-Mentor',
-    completedSections: 8,
-    totalSections: 10,
-    imageUrl: 'https://img.usecurling.com/p/800/500?q=small%20airplane',
-    linked: true,
-  },
-  {
-    id: '2',
-    name: 'Inpaer Colt',
-    completedSections: 5,
-    totalSections: 10,
-    imageUrl: 'https://img.usecurling.com/p/800/500?q=light%20sport%20aircraft',
-    linked: false,
-  },
-  {
-    id: '3',
-    name: 'Cessna 172',
-    completedSections: 10,
-    totalSections: 10,
-    imageUrl: 'https://img.usecurling.com/p/800/500?q=cessna%20172',
-    linked: true,
-  },
-]
-
 interface AppContextData {
   role: Role
   aircrafts: Aircraft[]
-  deleteAircraft: (id: string) => void
+  deleteAircraft: (id: string) => Promise<void>
+  loadingAircrafts: boolean
 }
 
 const AppContext = createContext<AppContextData | undefined>(undefined)
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const { profile } = useAuth()
-  const [aircrafts, setAircrafts] = useState<Aircraft[]>(INITIAL_AIRCRAFTS)
+  const { profile, user } = useAuth()
+  const [aircrafts, setAircrafts] = useState<Aircraft[]>([])
+  const [loadingAircrafts, setLoadingAircrafts] = useState(true)
 
   const role: Role = profile?.role === 'admin' ? 'adm' : 'aluno'
 
-  const deleteAircraft = (id: string) => {
-    setAircrafts((prev) => prev.filter((a) => a.id !== id))
+  useEffect(() => {
+    let mounted = true
+
+    if (!user || !profile) {
+      setAircrafts([])
+      setLoadingAircrafts(false)
+      return
+    }
+
+    const fetchAircrafts = async () => {
+      setLoadingAircrafts(true)
+      try {
+        if (role === 'adm') {
+          const { data, error } = await supabase
+            .from('aircraft')
+            .select('*')
+            .order('created_at', { ascending: false })
+
+          if (error) throw error
+
+          if (mounted && data) {
+            setAircrafts(
+              data.map((a) => ({
+                id: a.id,
+                name: a.name,
+                progress: 0,
+                imageUrl: a.image_url || 'https://img.usecurling.com/p/800/500?q=airplane',
+                linked: false,
+              })),
+            )
+          }
+        } else {
+          const { data, error } = await supabase
+            .from('enrollments')
+            .select(
+              `
+              progress_percentage,
+              aircraft:aircraft_id (
+                id,
+                name,
+                image_url
+              )
+            `,
+            )
+            .eq('student_id', user.id)
+
+          if (error) throw error
+
+          if (mounted && data) {
+            setAircrafts(
+              data
+                .map((e) => {
+                  const ac = Array.isArray(e.aircraft) ? e.aircraft[0] : e.aircraft
+                  if (!ac) return null
+
+                  return {
+                    id: ac.id,
+                    name: ac.name,
+                    progress: e.progress_percentage || 0,
+                    imageUrl: ac.image_url || 'https://img.usecurling.com/p/800/500?q=airplane',
+                    linked: true,
+                  }
+                })
+                .filter(Boolean) as Aircraft[],
+            )
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching aircrafts:', err)
+      } finally {
+        if (mounted) setLoadingAircrafts(false)
+      }
+    }
+
+    fetchAircrafts()
+
+    return () => {
+      mounted = false
+    }
+  }, [user, profile, role])
+
+  const deleteAircraft = async (id: string) => {
+    if (role !== 'adm') return
+
+    try {
+      const { error } = await supabase.from('aircraft').delete().eq('id', id)
+      if (error) throw error
+      setAircrafts((prev) => prev.filter((a) => a.id !== id))
+    } catch (err) {
+      console.error('Error deleting aircraft:', err)
+      throw err
+    }
   }
 
   return React.createElement(
     AppContext.Provider,
-    { value: { role, aircrafts, deleteAircraft } },
+    { value: { role, aircrafts, deleteAircraft, loadingAircrafts } },
     children,
   )
 }

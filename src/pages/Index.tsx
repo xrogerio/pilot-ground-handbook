@@ -1,11 +1,11 @@
 import { useState, useMemo } from 'react'
-import { Search, PlaneTakeoff } from 'lucide-react'
+import { Search, PlaneTakeoff, Loader2 } from 'lucide-react'
 import { useAppContext } from '@/contexts/AppContext'
 import { AircraftCard } from '@/components/AircraftCard'
 import { Input } from '@/components/ui/input'
 
 export default function Index() {
-  const { role, aircrafts } = useAppContext()
+  const { role, aircrafts, loadingAircrafts } = useAppContext()
   const [search, setSearch] = useState('')
 
   const filteredAircrafts = useMemo(() => {
@@ -17,6 +17,15 @@ export default function Index() {
       return true
     })
   }, [aircrafts, role, search])
+
+  if (loadingAircrafts) {
+    return (
+      <div className="flex h-[50vh] flex-col items-center justify-center gap-4 animate-fade-in">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <p className="text-muted-foreground font-medium">Carregando frota...</p>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-8 animate-fade-in">
