@@ -1,4 +1,4 @@
-DO $
+DO $$
 DECLARE
   new_user_id uuid;
 BEGIN
@@ -28,4 +28,4 @@ BEGIN
     -- Let's update it to 'admin'
     UPDATE public.users SET role = 'admin' WHERE id = new_user_id;
   END IF;
-END $;
+END $$;
