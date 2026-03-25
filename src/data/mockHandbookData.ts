@@ -90,6 +90,7 @@ export function getMockHandbookContent(aircraftId: string, sectionId: string): C
         {
           type: 'chart',
           title: 'Desempenho de Cruzeiro (TAS vs Altitude)',
+          chartType: 'line',
           data: [
             { alt: 'Nível do Mar', tas: 105 + seed * 3 },
             { alt: '2000 ft', tas: 108 + seed * 4 },

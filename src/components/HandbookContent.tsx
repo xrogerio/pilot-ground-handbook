@@ -8,11 +8,30 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts'
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+} from 'recharts'
 
 interface HandbookContentProps {
   blocks: ContentBlock[]
 }
+
+const PIE_COLORS = [
+  'hsl(var(--chart-1, 220 70% 50%))',
+  'hsl(var(--chart-2, 160 60% 45%))',
+  'hsl(var(--chart-3, 30 80% 55%))',
+  'hsl(var(--chart-4, 280 65% 60%))',
+  'hsl(var(--chart-5, 340 75% 55%))',
+]
 
 export function HandbookContent({ blocks }: HandbookContentProps) {
   if (!blocks || blocks.length === 0) {
@@ -80,50 +99,113 @@ export function HandbookContent({ blocks }: HandbookContentProps) {
               </div>
             )
 
-          case 'chart':
+          case 'chart': {
+            const isPie = block.chartType === 'pie'
+            const isBar = block.chartType === 'bar'
+
             return (
               <div key={index} className="space-y-4">
                 <h3 className="text-xl font-bold text-slate-800">{block.title}</h3>
-                <div className="aspect-video w-full border border-slate-200 rounded-xl bg-slate-50/30 p-6 shadow-sm">
-                  <ChartContainer config={block.config} className="h-full w-full">
-                    <LineChart
-                      data={block.data}
-                      margin={{ top: 20, right: 20, left: -20, bottom: 0 }}
-                    >
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        vertical={false}
-                        stroke="hsl(var(--muted-foreground)/0.2)"
-                      />
-                      <XAxis
-                        dataKey={block.xKey}
-                        tickLine={false}
-                        axisLine={false}
-                        tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                        dy={10}
-                      />
-                      <YAxis
-                        tickLine={false}
-                        axisLine={false}
-                        tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                      />
-                      <ChartTooltip content={<ChartTooltipContent />} />
-                      {block.lines.map((line) => (
-                        <Line
-                          key={line.key}
-                          type="monotone"
-                          dataKey={line.key}
-                          stroke={line.color}
-                          strokeWidth={3}
-                          dot={{ r: 4, strokeWidth: 2, fill: 'white' }}
-                          activeDot={{ r: 6 }}
+                <div className="w-full min-h-[350px] border border-slate-200 rounded-xl bg-slate-50/30 p-6 shadow-sm flex flex-col justify-center items-center">
+                  <ChartContainer config={block.config} className="h-[300px] w-full">
+                    {isPie ? (
+                      <PieChart margin={{ top: 20, right: 20, left: 20, bottom: 20 }}>
+                        <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+                        <Pie
+                          data={block.data}
+                          dataKey={block.lines[0]?.key || 'value'}
+                          nameKey={block.xKey}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={60}
+                          outerRadius={100}
+                          paddingAngle={2}
+                          fill="var(--color-value)"
+                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                          labelLine={false}
+                        >
+                          {block.data.map((_, i) => (
+                            <Cell key={`cell-${i}`} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                          ))}
+                        </Pie>
+                      </PieChart>
+                    ) : isBar ? (
+                      <BarChart
+                        data={block.data}
+                        margin={{ top: 20, right: 20, left: -20, bottom: 0 }}
+                      >
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          vertical={false}
+                          stroke="hsl(var(--muted-foreground)/0.2)"
                         />
-                      ))}
-                    </LineChart>
+                        <XAxis
+                          dataKey={block.xKey}
+                          tickLine={false}
+                          axisLine={false}
+                          tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                          dy={10}
+                        />
+                        <YAxis
+                          tickLine={false}
+                          axisLine={false}
+                          tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                        />
+                        <ChartTooltip
+                          cursor={{ fill: 'hsl(var(--muted)/0.4)' }}
+                          content={<ChartTooltipContent />}
+                        />
+                        {block.lines.map((line) => (
+                          <Bar
+                            key={line.key}
+                            dataKey={line.key}
+                            fill={line.color}
+                            radius={[4, 4, 0, 0]}
+                            maxBarSize={60}
+                          />
+                        ))}
+                      </BarChart>
+                    ) : (
+                      <LineChart
+                        data={block.data}
+                        margin={{ top: 20, right: 20, left: -20, bottom: 0 }}
+                      >
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          vertical={false}
+                          stroke="hsl(var(--muted-foreground)/0.2)"
+                        />
+                        <XAxis
+                          dataKey={block.xKey}
+                          tickLine={false}
+                          axisLine={false}
+                          tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                          dy={10}
+                        />
+                        <YAxis
+                          tickLine={false}
+                          axisLine={false}
+                          tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                        />
+                        <ChartTooltip content={<ChartTooltipContent />} />
+                        {block.lines.map((line) => (
+                          <Line
+                            key={line.key}
+                            type="monotone"
+                            dataKey={line.key}
+                            stroke={line.color}
+                            strokeWidth={3}
+                            dot={{ r: 4, strokeWidth: 2, fill: 'white' }}
+                            activeDot={{ r: 6 }}
+                          />
+                        ))}
+                      </LineChart>
+                    )}
                   </ChartContainer>
                 </div>
               </div>
             )
+          }
 
           default:
             return null

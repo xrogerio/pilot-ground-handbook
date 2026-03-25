@@ -64,13 +64,26 @@ export default function AircraftDetails() {
 
           graphsRes.data?.forEach((g) => {
             const chartData = g.graph_data as any
+            const chartType = chartData.type || g.graph_type || 'line'
+
+            // Format and validate data to ensure numerical values
+            const validData = Array.isArray(chartData.data)
+              ? chartData.data.map((d: any) => ({
+                  ...d,
+                  label: String(d.label || ''),
+                  value: Number(d.value) || 0,
+                }))
+              : []
+
             const config = {
               value: { label: 'Valor', color: 'hsl(var(--primary))' },
             }
+
             newBlocks.push({
               type: 'chart',
-              title: chartData.title,
-              data: chartData.data,
+              title: chartData.title || 'Gráfico de Desempenho',
+              chartType: chartType as 'line' | 'bar' | 'pie',
+              data: validData,
               config,
               xKey: 'label',
               lines: [{ key: 'value', color: 'var(--color-value)' }],

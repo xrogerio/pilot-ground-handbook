@@ -142,13 +142,11 @@ export default function EditAircraft() {
 
       await supabase.from('graphs').delete().eq('section_id', section.id)
       if (formData.chart) {
-        await supabase
-          .from('graphs')
-          .insert({
-            section_id: section.id,
-            graph_type: formData.chart.type,
-            graph_data: formData.chart as any,
-          })
+        await supabase.from('graphs').insert({
+          section_id: section.id,
+          graph_type: formData.chart.type,
+          graph_data: formData.chart as any,
+        })
       }
 
       toast({ title: 'Sucesso', description: 'Seção salva com sucesso na base de dados.' })

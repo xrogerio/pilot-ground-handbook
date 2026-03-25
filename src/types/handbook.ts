@@ -25,6 +25,7 @@ export type ContentBlock =
   | {
       type: 'chart'
       title: string
+      chartType?: 'line' | 'bar' | 'pie'
       data: any[]
       config: Record<string, { label: string; color: string }>
       xKey: string
