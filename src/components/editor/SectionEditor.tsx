@@ -13,9 +13,9 @@ interface SectionEditorProps {
 }
 
 export function SectionEditor({ data, onChange }: SectionEditorProps) {
-  if (!data) return null
-
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
+
+  if (!data) return null
 
   const addSubsection = () => {
     onChange({
