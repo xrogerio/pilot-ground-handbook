@@ -5,6 +5,7 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { AppProvider } from '@/contexts/AppContext'
 import Index from './pages/Index'
 import AircraftDetails from './pages/AircraftDetails'
+import EditAircraft from './pages/EditAircraft'
 import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
 
@@ -18,6 +19,7 @@ const App = () => (
           <Route element={<Layout />}>
             <Route path="/" element={<Index />} />
             <Route path="/aircraft/:id" element={<AircraftDetails />} />
+            <Route path="/aircraft/:id/edit" element={<EditAircraft />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

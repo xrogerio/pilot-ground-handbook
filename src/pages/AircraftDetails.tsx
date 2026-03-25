@@ -98,9 +98,12 @@ export default function AircraftDetails() {
                 <Button
                   variant="outline"
                   className="gap-2 shrink-0 border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800 transition-colors"
+                  asChild
                 >
-                  <Pencil className="w-4 h-4" />
-                  Editar Seção
+                  <Link to={`/aircraft/${aircraft.id}/edit?section=${activeSectionId}`}>
+                    <Pencil className="w-4 h-4" />
+                    Editar Seção
+                  </Link>
                 </Button>
               )}
             </div>
