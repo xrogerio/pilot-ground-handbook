@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react'
+import { useAuth } from '@/hooks/use-auth'
 
 export type Role = 'adm' | 'aluno'
 
@@ -40,7 +41,6 @@ const INITIAL_AIRCRAFTS: Aircraft[] = [
 
 interface AppContextData {
   role: Role
-  setRole: (role: Role) => void
   aircrafts: Aircraft[]
   deleteAircraft: (id: string) => void
 }
@@ -48,8 +48,10 @@ interface AppContextData {
 const AppContext = createContext<AppContextData | undefined>(undefined)
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [role, setRole] = useState<Role>('adm')
+  const { profile } = useAuth()
   const [aircrafts, setAircrafts] = useState<Aircraft[]>(INITIAL_AIRCRAFTS)
+
+  const role: Role = profile?.role === 'admin' ? 'adm' : 'aluno'
 
   const deleteAircraft = (id: string) => {
     setAircrafts((prev) => prev.filter((a) => a.id !== id))
@@ -57,7 +59,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   return React.createElement(
     AppContext.Provider,
-    { value: { role, setRole, aircrafts, deleteAircraft } },
+    { value: { role, aircrafts, deleteAircraft } },
     children,
   )
 }

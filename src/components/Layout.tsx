@@ -1,18 +1,25 @@
-import { Outlet, useLocation, Link } from 'react-router-dom'
-import { Plane, ChevronRight, BookOpen } from 'lucide-react'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { useAppContext, Role } from '@/contexts/AppContext'
-import { cn } from '@/lib/utils'
+import { Outlet, useLocation, Link, Navigate } from 'react-router-dom'
+import { Plane, ChevronRight, LogOut, User as UserIcon } from 'lucide-react'
+import { useAppContext } from '@/contexts/AppContext'
+import { useAuth } from '@/hooks/use-auth'
+import { Button } from '@/components/ui/button'
 
 export default function Layout() {
-  const { role, setRole, aircrafts } = useAppContext()
+  const { user, loading, signOut } = useAuth()
+  const { aircrafts } = useAppContext()
   const location = useLocation()
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return <Navigate to="/login" state={{ from: location }} replace />
+  }
 
   // Basic breadcrumb generation based on path
   const pathParts = location.pathname.split('/').filter(Boolean)
@@ -32,20 +39,20 @@ export default function Layout() {
           <span className="hidden sm:inline tracking-tight">Pilot Ground-Handbook</span>
           <span className="sm:hidden tracking-tight">PGH</span>
         </Link>
-        <div className="flex items-center gap-3">
-          <div className="hidden sm:flex items-center gap-1.5 text-sm font-medium text-slate-500">
-            <BookOpen className="w-4 h-4" />
-            Visão:
+        <div className="flex items-center gap-4">
+          <div className="hidden md:flex items-center gap-2 text-sm font-medium text-slate-600 bg-slate-50 py-1.5 px-3 rounded-full border border-slate-200">
+            <UserIcon className="w-4 h-4 text-slate-400" />
+            {user.email}
           </div>
-          <Select value={role} onValueChange={(value) => setRole(value as Role)}>
-            <SelectTrigger className="w-[140px] bg-slate-50 border-slate-200 h-9 font-medium">
-              <SelectValue placeholder="Selecione..." />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="adm">Administrador</SelectItem>
-              <SelectItem value="aluno">Aluno</SelectItem>
-            </SelectContent>
-          </Select>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => signOut()}
+            className="text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors"
+          >
+            <LogOut className="w-4 h-4 md:mr-2" />
+            <span className="hidden md:inline">Sair</span>
+          </Button>
         </div>
       </header>
 

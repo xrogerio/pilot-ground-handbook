@@ -9,6 +9,8 @@ import AircraftDetails from './pages/AircraftDetails'
 import EditAircraft from './pages/EditAircraft'
 import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
+import Login from './pages/Login'
+import Register from './pages/Register'
 
 const App = () => (
   <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
@@ -18,6 +20,8 @@ const App = () => (
           <Toaster />
           <Sonner />
           <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
             <Route element={<Layout />}>
               <Route path="/" element={<Index />} />
               <Route path="/aircraft/:id" element={<AircraftDetails />} />
