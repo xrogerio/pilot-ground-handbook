@@ -8,6 +8,7 @@ import Index from './pages/Index'
 import AircraftDetails from './pages/AircraftDetails'
 import EditAircraft from './pages/EditAircraft'
 import StudentManagement from './pages/StudentManagement'
+import QuizGenerator from './pages/QuizGenerator'
 import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
 import Login from './pages/Login'
@@ -28,6 +29,7 @@ const App = () => (
               <Route path="/aircraft/:id" element={<AircraftDetails />} />
               <Route path="/aircraft/:id/edit" element={<EditAircraft />} />
               <Route path="/students" element={<StudentManagement />} />
+              <Route path="/quiz" element={<QuizGenerator />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
