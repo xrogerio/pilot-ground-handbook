@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS public.quiz_results (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   student_id UUID REFERENCES public.users(id) ON DELETE CASCADE NOT NULL,
-  aircraft_id UUID REFERENCES public.aircraft(id) ON DELETE CASCADE NOT NULL,
+  aircraft_id TEXT REFERENCES public.aircraft(id) ON DELETE CASCADE NOT NULL,
   score INTEGER NOT NULL,
   passed BOOLEAN NOT NULL,
   difficulty TEXT CHECK (difficulty IN ('easy', 'medium', 'hard')) NOT NULL,
