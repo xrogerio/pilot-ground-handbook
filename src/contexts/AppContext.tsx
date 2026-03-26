@@ -17,6 +17,7 @@ export interface Aircraft {
   progress: number
   imageUrl: string
   linked: boolean
+  specs?: Record<string, any>
 }
 
 interface AppContextData {
@@ -61,6 +62,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
               progress: 0,
               imageUrl: a.image_url || 'https://img.usecurling.com/p/800/500?q=airplane',
               linked: false,
+              specs: (a as any).specs || {},
             })),
           )
         }
@@ -73,7 +75,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
             aircraft:aircraft_id (
               id,
               name,
-              image_url
+              image_url,
+              specs
             )
           `,
           )
@@ -94,6 +97,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                   progress: e.progress_percentage || 0,
                   imageUrl: ac.image_url || 'https://img.usecurling.com/p/800/500?q=airplane',
                   linked: true,
+                  specs: (ac as any).specs || {},
                 }
               })
               .filter(Boolean) as Aircraft[],

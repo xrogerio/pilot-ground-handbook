@@ -9,6 +9,7 @@ import {
   BrainCircuit,
   KeyRound,
   Settings,
+  BarChart2,
 } from 'lucide-react'
 import { useAppContext } from '@/contexts/AppContext'
 import { useAuth } from '@/hooks/use-auth'
@@ -111,6 +112,7 @@ export default function Layout() {
   const isDetails = pathParts[0] === 'aircraft' && pathParts[1]
   const isStudents = pathParts[0] === 'students'
   const isQuiz = pathParts[0] === 'quiz'
+  const isCompare = pathParts[0] === 'compare'
   const currentAircraft = isDetails ? aircrafts.find((a) => a.id === pathParts[1]) : null
 
   return (
@@ -136,6 +138,15 @@ export default function Layout() {
               <span className="hidden md:inline">Quiz IA</span>
             </Link>
           )}
+
+          <Link
+            to="/compare"
+            className="flex items-center gap-2 text-sm font-medium text-slate-600 bg-slate-50 py-1.5 px-3 rounded-full border border-slate-200 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 transition-colors"
+          >
+            <BarChart2 className="w-4 h-4 text-emerald-500" />
+            <span className="hidden md:inline">Comparativo</span>
+          </Link>
+
           {isAdmin && (
             <Link
               to="/students"
@@ -224,6 +235,12 @@ export default function Layout() {
             <>
               <ChevronRight className="w-4 h-4 mx-1 opacity-50" />
               <span className="text-primary">Gerador de Quiz IA</span>
+            </>
+          )}
+          {isCompare && (
+            <>
+              <ChevronRight className="w-4 h-4 mx-1 opacity-50" />
+              <span className="text-primary">Comparativo de Aeronaves</span>
             </>
           )}
           {isDetails && currentAircraft && (
