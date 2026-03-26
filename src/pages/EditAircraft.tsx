@@ -22,7 +22,7 @@ export default function EditAircraft() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const { toast } = useToast()
-  const { aircrafts, role } = useAppContext()
+  const { aircrafts, role, refreshAircrafts } = useAppContext()
 
   const sectionQuery = searchParams.get('section')
   const [activeSectionId, setActiveSectionId] = useState<string>(
@@ -31,6 +31,7 @@ export default function EditAircraft() {
 
   const [formData, setFormData] = useState<SectionFormData>({
     title: '',
+    thumbnail: { url: '' },
     subsections: [],
   })
   const [loading, setLoading] = useState(false)
@@ -53,12 +54,18 @@ export default function EditAircraft() {
     const fetchSectionData = async () => {
       setLoading(true)
       try {
-        const { data: section } = await supabase
-          .from('sections')
-          .select('*')
-          .eq('aircraft_id', id)
-          .eq('section_number', parseInt(activeSectionId))
-          .maybeSingle()
+        const [aircraftRes, sectionRes] = await Promise.all([
+          supabase.from('aircraft').select('image_url').eq('id', id).single(),
+          supabase
+            .from('sections')
+            .select('*')
+            .eq('aircraft_id', id)
+            .eq('section_number', parseInt(activeSectionId))
+            .maybeSingle(),
+        ])
+
+        const aircraftImgUrl = aircraftRes.data?.image_url || ''
+        const section = sectionRes.data
 
         if (section) {
           const { data: subsections } = await (supabase as any)
@@ -137,11 +144,13 @@ export default function EditAircraft() {
 
             setFormData({
               title: section.section_title || '',
+              thumbnail: { url: aircraftImgUrl },
               subsections: formattedSubsections,
             })
           } else {
             setFormData({
               title: section.section_title || '',
+              thumbnail: { url: aircraftImgUrl },
               subsections: [],
             })
           }
@@ -149,6 +158,7 @@ export default function EditAircraft() {
           const defaultTitle = HANDBOOK_SECTIONS.find((s) => s.id === activeSectionId)?.title || ''
           setFormData({
             title: defaultTitle,
+            thumbnail: { url: aircraftImgUrl },
             subsections: [],
           })
         }
@@ -165,6 +175,33 @@ export default function EditAircraft() {
     if (!id) return
     setSaving(true)
     try {
+      // Save aircraft thumbnail
+      if (formData.thumbnail) {
+        let finalThumbUrl = formData.thumbnail.url
+
+        if (!finalThumbUrl && formData.thumbnail.localFile) {
+          const fileExt = formData.thumbnail.localFile.name.split('.').pop()
+          const fileName = `aircrafts/${id}-thumb-${crypto.randomUUID()}.${fileExt}`
+
+          const { error: uploadError } = await supabase.storage
+            .from('images')
+            .upload(fileName, formData.thumbnail.localFile)
+
+          if (!uploadError) {
+            const { data } = supabase.storage.from('images').getPublicUrl(fileName)
+            finalThumbUrl = data.publicUrl
+          }
+        }
+
+        if (finalThumbUrl !== undefined) {
+          await supabase
+            .from('aircraft')
+            .update({ image_url: finalThumbUrl || null })
+            .eq('id', id)
+          await refreshAircrafts()
+        }
+      }
+
       let { data: section } = await supabase
         .from('sections')
         .select('id')

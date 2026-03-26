@@ -36,5 +36,6 @@ export interface SubsectionData {
 
 export interface SectionFormData {
   title: string
+  thumbnail?: ImageData
   subsections: SubsectionData[]
 }

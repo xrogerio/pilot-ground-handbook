@@ -3,7 +3,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Plus } from 'lucide-react'
+import { Plus, ImageIcon } from 'lucide-react'
 import { SubsectionEditor } from './SubsectionEditor'
 import { useState } from 'react'
 
@@ -90,6 +90,59 @@ export function SectionEditor({ data, onChange }: SectionEditorProps) {
                 onChange={(e) => onChange({ ...data, title: e.target.value })}
                 className="text-lg font-medium h-12 bg-white"
               />
+
+              <div className="space-y-3 pt-4 mt-4 border-t border-slate-100">
+                <Label className="text-sm text-slate-600 flex items-center gap-2">
+                  <ImageIcon className="w-4 h-4" /> Imagem de Capa da Aeronave (Exibida na Frota)
+                </Label>
+                <div className="flex flex-col sm:flex-row gap-4 items-start">
+                  <div className="flex-1 space-y-3 w-full">
+                    <Input
+                      value={data.thumbnail?.url || ''}
+                      onChange={(e) =>
+                        onChange({
+                          ...data,
+                          thumbnail: { ...(data.thumbnail || { url: '' }), url: e.target.value },
+                        })
+                      }
+                      placeholder="URL da imagem (web)... (Prioridade)"
+                      className="bg-white"
+                    />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      id="aircraft-thumbnail"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) {
+                          const localUrl = URL.createObjectURL(file)
+                          onChange({
+                            ...data,
+                            thumbnail: { url: '', localFile: file, localUrl },
+                          })
+                        }
+                      }}
+                    />
+                    <Button
+                      variant="outline"
+                      className="w-full gap-2 bg-white hover:bg-slate-100"
+                      onClick={() => document.getElementById('aircraft-thumbnail')?.click()}
+                    >
+                      <ImageIcon className="w-4 h-4" /> Escolher Arquivo Local
+                    </Button>
+                  </div>
+                  {(data.thumbnail?.url || data.thumbnail?.localUrl) && (
+                    <div className="w-full sm:w-36 h-28 rounded-lg border border-slate-200 overflow-hidden bg-white shrink-0 shadow-sm">
+                      <img
+                        src={data.thumbnail.url || data.thumbnail.localUrl}
+                        alt="Preview"
+                        className="w-full h-full object-cover mix-blend-multiply"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
             <Button
               onClick={addSubsection}
