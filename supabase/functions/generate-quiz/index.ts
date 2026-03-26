@@ -9,7 +9,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const { aircraft_id, difficulty } = await req.json()
-    
+
     if (!aircraft_id) {
       throw new Error('aircraft_id is required')
     }
@@ -17,9 +17,9 @@ Deno.serve(async (req: Request) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
     const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     const authHeader = req.headers.get('Authorization')
-    
+
     const supabase = createClient(supabaseUrl, supabaseKey, {
-      global: { headers: { Authorization: authHeader || '' } }
+      global: { headers: { Authorization: authHeader || '' } },
     })
 
     const { data: sections } = await supabase
@@ -27,10 +27,13 @@ Deno.serve(async (req: Request) => {
       .select('id, section_title')
       .eq('aircraft_id', aircraft_id)
 
-    let fullText = ""
+    let fullText = ''
     if (sections && sections.length > 0) {
       for (const section of sections) {
-        const { data: texts } = await supabase.from('texts').select('content').eq('section_id', section.id)
+        const { data: texts } = await supabase
+          .from('texts')
+          .select('content')
+          .eq('section_id', section.id)
         if (texts && texts.length > 0) {
           fullText += `\nSeção: ${section.section_title}\n`
           fullText += texts.map((t: any) => t.content).join('\n')
@@ -39,15 +42,21 @@ Deno.serve(async (req: Request) => {
     }
 
     const openAiKey = Deno.env.get('OPENAI_API_KEY')
-    if (!openAiKey || fullText.trim() === "") {
-      const mockQuestions = Array.from({length: 20}).map((_, i) => ({
+    if (!openAiKey || fullText.trim() === '') {
+      const mockQuestions = Array.from({ length: 20 }).map((_, i) => ({
         id: i.toString(),
-        question: `[MOCK] Questão simulada ${i+1} sobre a aeronave (Dificuldade: ${difficulty}). Em um ambiente real, esta questão seria gerada por IA com base no conteúdo da aeronave. Qual é a correta?`,
-        options: ['Alternativa A (Incorreta)', 'Alternativa B (Correta)', 'Alternativa C (Incorreta)', 'Alternativa D (Incorreta)'],
+        question: `[MOCK] Questão simulada ${i + 1} sobre a aeronave (Dificuldade: ${difficulty}). Em um ambiente real, esta questão seria gerada por IA com base no conteúdo da aeronave. Qual é a correta?`,
+        options: [
+          'Alternativa A (Incorreta)',
+          'Alternativa B (Correta)',
+          'Alternativa C (Incorreta)',
+          'Alternativa D (Incorreta)',
+        ],
         correctAnswer: 1,
-        explanation: 'Esta é uma explicação simulada pois a chave da API da OpenAI não foi configurada ou a aeronave não possui conteúdo em texto cadastrado.'
+        explanation:
+          'Esta é uma explicação simulada pois a chave da API da OpenAI não foi configurada ou a aeronave não possui conteúdo em texto cadastrado.',
       }))
-      
+
       return new Response(JSON.stringify({ questions: mockQuestions }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
@@ -58,14 +67,14 @@ Deno.serve(async (req: Request) => {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAiKey}`,
+        Authorization: `Bearer ${openAiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         model: 'gpt-3.5-turbo-1106',
         messages: [{ role: 'system', content: prompt }],
         temperature: 0.7,
-        response_format: { type: "json_object" }
+        response_format: { type: 'json_object' },
       }),
     })
 
@@ -76,12 +85,15 @@ Deno.serve(async (req: Request) => {
 
     const data = await response.json()
     const content = data.choices[0].message.content
-    
+
     let quizData
     try {
       quizData = JSON.parse(content)
     } catch (e) {
-      const jsonStr = content.replace(/```json/g, '').replace(/```/g, '').trim()
+      const jsonStr = content
+        .replace(/```json/g, '')
+        .replace(/```/g, '')
+        .trim()
       quizData = JSON.parse(jsonStr)
     }
 
@@ -92,7 +104,6 @@ Deno.serve(async (req: Request) => {
     return new Response(JSON.stringify(quizData), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
-
   } catch (error: any) {
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

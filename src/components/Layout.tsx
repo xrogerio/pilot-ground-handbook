@@ -8,6 +8,7 @@ import {
   Users,
   BrainCircuit,
   KeyRound,
+  Settings,
 } from 'lucide-react'
 import { useAppContext } from '@/contexts/AppContext'
 import { useAuth } from '@/hooks/use-auth'
@@ -20,18 +21,28 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { ChangePasswordDialog } from '@/components/ChangePasswordDialog'
+import { ProfileDialog } from '@/components/ProfileDialog'
 import { supabase } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 
 export default function Layout() {
-  const { user, profile, loading, signOut } = useAuth()
+  const { user, profile, isRecoveryMode, loading, signOut } = useAuth()
   const { aircrafts } = useAppContext()
   const location = useLocation()
 
   const [newStudentsCount, setNewStudentsCount] = useState(0)
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false)
+  const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false)
   const isAdmin = profile?.role === 'admin'
+
+  // Trigger password change dialog automatically if user enters from a recovery link
+  useEffect(() => {
+    if (isRecoveryMode) {
+      setIsPasswordDialogOpen(true)
+    }
+  }, [isRecoveryMode])
 
   useEffect(() => {
     if (!isAdmin) return
@@ -145,22 +156,38 @@ export default function Layout() {
             <DropdownMenuTrigger asChild>
               <Button
                 variant="outline"
-                className="flex items-center gap-2 text-sm font-medium text-slate-600 bg-slate-50 py-1.5 px-3 rounded-full border border-slate-200 hover:bg-slate-100"
+                className="flex items-center gap-2 text-sm font-medium text-slate-600 bg-slate-50 py-1 px-1.5 pl-3 rounded-full border border-slate-200 hover:bg-slate-100 h-10"
               >
-                <UserIcon className="w-4 h-4 text-slate-400" />
-                <span className="hidden lg:inline truncate max-w-[200px]">{user.email}</span>
+                <span className="hidden lg:inline truncate max-w-[200px]">
+                  {profile?.name || user.email?.split('@')[0]}
+                </span>
+                <Avatar className="h-7 w-7 bg-white">
+                  <AvatarImage src={profile?.avatar_url || ''} className="object-cover" />
+                  <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                    {(profile?.name || user.email || 'U').charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">Logado como</p>
+                  <p className="text-sm font-medium leading-none truncate">
+                    {profile?.name || 'Usuário'}
+                  </p>
                   <p className="text-xs leading-none text-muted-foreground truncate">
                     {user.email}
                   </p>
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => setIsProfileDialogOpen(true)}
+                className="cursor-pointer"
+              >
+                <Settings className="w-4 h-4 mr-2" />
+                Meu Perfil
+              </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => setIsPasswordDialogOpen(true)}
                 className="cursor-pointer"
@@ -222,6 +249,7 @@ export default function Layout() {
       </footer>
 
       <ChangePasswordDialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen} />
+      <ProfileDialog open={isProfileDialogOpen} onOpenChange={setIsProfileDialogOpen} />
     </div>
   )
 }

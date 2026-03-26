@@ -14,11 +14,14 @@ import {
 } from '@/components/ui/card'
 import { Plane } from 'lucide-react'
 import { toast } from 'sonner'
+import { ForgotPasswordDialog } from '@/components/ForgotPasswordDialog'
 
 export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [isForgotDialogOpen, setIsForgotDialogOpen] = useState(false)
+
   const { signIn, user } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
@@ -82,6 +85,14 @@ export default function Login() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password">Senha</Label>
+                  <button
+                    type="button"
+                    onClick={() => setIsForgotDialogOpen(true)}
+                    className="text-sm text-primary hover:underline"
+                    tabIndex={-1}
+                  >
+                    Esqueceu a senha?
+                  </button>
                 </div>
                 <Input
                   id="password"
@@ -107,6 +118,12 @@ export default function Login() {
           </form>
         </Card>
       </div>
+
+      <ForgotPasswordDialog
+        open={isForgotDialogOpen}
+        onOpenChange={setIsForgotDialogOpen}
+        defaultEmail={email}
+      />
     </div>
   )
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Loader2, KeyRound } from 'lucide-react'
 import {
   Dialog,
@@ -20,13 +20,33 @@ interface ChangePasswordDialogProps {
 }
 
 export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialogProps) {
-  const { updatePassword } = useAuth()
+  const { updatePassword, isRecoveryMode, setRecoveryMode } = useAuth()
   const { toast } = useToast()
 
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
+
+  // Block closing if in recovery mode unless successful
+  const handleOpenChange = (val: boolean) => {
+    if (isRecoveryMode && !val) {
+      toast({
+        title: 'Ação necessária',
+        description: 'Você precisa definir uma nova senha para continuar.',
+        variant: 'destructive',
+      })
+      return
+    }
+    if (!val) resetForm()
+    onOpenChange(val)
+  }
+
+  const resetForm = () => {
+    setCurrentPassword('')
+    setNewPassword('')
+    setConfirmPassword('')
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -50,7 +70,7 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
     }
 
     setLoading(true)
-    const { error } = await updatePassword(currentPassword, newPassword)
+    const { error } = await updatePassword(isRecoveryMode ? null : currentPassword, newPassword)
     setLoading(false)
 
     if (error) {
@@ -61,49 +81,41 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
       })
     } else {
       toast({
-        title: 'Senha alterada',
-        description: 'Sua senha foi atualizada com sucesso.',
+        title: 'Senha atualizada',
+        description: 'Sua senha foi alterada com sucesso.',
       })
-      setCurrentPassword('')
-      setNewPassword('')
-      setConfirmPassword('')
+      resetForm()
       onOpenChange(false)
     }
   }
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(val) => {
-        if (!val) {
-          setCurrentPassword('')
-          setNewPassword('')
-          setConfirmPassword('')
-        }
-        onOpenChange(val)
-      }}
-    >
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <KeyRound className="w-5 h-5 text-primary" />
-            Alterar Senha
+            {isRecoveryMode ? 'Definir Nova Senha' : 'Alterar Senha'}
           </DialogTitle>
           <DialogDescription>
-            Digite sua senha atual e a nova senha para atualizar seu acesso.
+            {isRecoveryMode
+              ? 'Por favor, digite sua nova senha abaixo para recuperar o acesso.'
+              : 'Digite sua senha atual e a nova senha para atualizar seu acesso.'}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="currentPassword">Senha Atual</Label>
-            <Input
-              id="currentPassword"
-              type="password"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              required
-            />
-          </div>
+          {!isRecoveryMode && (
+            <div className="space-y-2">
+              <Label htmlFor="currentPassword">Senha Atual</Label>
+              <Input
+                id="currentPassword"
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                required={!isRecoveryMode}
+              />
+            </div>
+          )}
           <div className="space-y-2">
             <Label htmlFor="newPassword">Nova Senha</Label>
             <Input
@@ -125,17 +137,19 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
             />
           </div>
           <DialogFooter className="mt-6">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={loading}
-            >
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={loading}>
+            {!isRecoveryMode && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => handleOpenChange(false)}
+                disabled={loading}
+              >
+                Cancelar
+              </Button>
+            )}
+            <Button type="submit" disabled={loading} className={isRecoveryMode ? 'w-full' : ''}>
               {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Salvar Alteração
+              {isRecoveryMode ? 'Salvar Nova Senha' : 'Salvar Alteração'}
             </Button>
           </DialogFooter>
         </form>

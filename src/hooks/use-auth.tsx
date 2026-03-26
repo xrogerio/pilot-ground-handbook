@@ -3,16 +3,21 @@ import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase/client'
 import { Database } from '@/lib/supabase/types'
 
-type Profile = Database['public']['Tables']['users']['Row']
+type BaseProfile = Database['public']['Tables']['users']['Row']
+export type Profile = BaseProfile & { name?: string | null; avatar_url?: string | null }
 
 interface AuthContextType {
   user: User | null
   session: Session | null
   profile: Profile | null
+  isRecoveryMode: boolean
+  setRecoveryMode: (val: boolean) => void
   signUp: (email: string, password: string, role: string) => Promise<{ error: any }>
   signIn: (email: string, password: string) => Promise<{ error: any }>
   signOut: () => Promise<{ error: any }>
-  updatePassword: (currentPassword: string, newPassword: string) => Promise<{ error: any }>
+  resetPassword: (email: string) => Promise<{ error: any }>
+  updatePassword: (currentPassword: string | null, newPassword: string) => Promise<{ error: any }>
+  updateProfileData: (data: { name?: string; avatar_url?: string }) => Promise<{ error: any }>
   loading: boolean
 }
 
@@ -29,11 +34,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
+  const [isRecoveryMode, setRecoveryMode] = useState(false)
 
   const fetchProfile = async (userId: string) => {
     const { data } = await supabase.from('users').select('*').eq('id', userId).single()
     if (data) {
-      setProfile(data)
+      setProfile(data as Profile)
     }
   }
 
@@ -43,6 +49,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session)
       setUser(session?.user ?? null)
+
+      if (event === 'PASSWORD_RECOVERY') {
+        setRecoveryMode(true)
+      }
+
       if (session?.user) {
         fetchProfile(session.user.id).then(() => setLoading(false))
       } else {
@@ -71,7 +82,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     })
 
     if (data.user && !error) {
-      // Small delay to ensure the database trigger has created the user row
       setTimeout(async () => {
         await supabase.from('users').update({ role }).eq('id', data.user!.id)
         fetchProfile(data.user!.id)
@@ -92,30 +102,66 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return { error }
   }
 
-  const updatePassword = async (currentPassword: string, newPassword: string) => {
+  const resetPassword = async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/`,
+    })
+    return { error }
+  }
+
+  const updatePassword = async (currentPassword: string | null, newPassword: string) => {
     if (!user?.email) return { error: { message: 'Usuário não encontrado' } }
 
-    // Validate current password by trying to sign in
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: user.email,
-      password: currentPassword,
-    })
+    if (!isRecoveryMode && currentPassword) {
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: currentPassword,
+      })
 
-    if (signInError) {
-      return { error: { message: 'Senha atual incorreta.' } }
+      if (signInError) {
+        return { error: { message: 'Senha atual incorreta.' } }
+      }
     }
 
-    // Update to new password
     const { error: updateError } = await supabase.auth.updateUser({
       password: newPassword,
     })
 
+    if (!updateError && isRecoveryMode) {
+      setRecoveryMode(false)
+    }
+
     return { error: updateError }
+  }
+
+  const updateProfileData = async (data: { name?: string; avatar_url?: string }) => {
+    if (!user) return { error: { message: 'Usuário não encontrado' } }
+
+    const { error } = await supabase.from('users').update(data).eq('id', user.id)
+
+    if (!error) {
+      setProfile((prev) => (prev ? { ...prev, ...data } : null))
+    }
+
+    return { error }
   }
 
   return (
     <AuthContext.Provider
-      value={{ user, session, profile, signUp, signIn, signOut, updatePassword, loading }}
+      value={{
+        user,
+        session,
+        profile,
+        isRecoveryMode,
+        setRecoveryMode,
+        signUp,
+        signIn,
+        signOut,
+        resetPassword,
+        updatePassword,
+        updateProfileData,
+        loading,
+      }}
     >
       {children}
     </AuthContext.Provider>
