@@ -18,20 +18,24 @@ export function SectionEditor({ data, onChange }: SectionEditorProps) {
   if (!data) return null
 
   const addSubsection = () => {
+    const newId = crypto.randomUUID()
     onChange({
       ...data,
       subsections: [
         ...(data.subsections || []),
         {
-          id: crypto.randomUUID(),
+          id: newId,
           title: `Subseção ${(data.subsections?.length || 0) + 1}`,
-          description: '',
-          images: [],
-          tables: [],
-          charts: [],
+          artifacts: [],
         },
       ],
     })
+
+    setTimeout(() => {
+      document
+        .getElementById(`sub-${newId}`)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, 100)
   }
 
   const updateSubsection = (index: number, sub: SubsectionData) => {
@@ -48,7 +52,6 @@ export function SectionEditor({ data, onChange }: SectionEditorProps) {
   const handleDragStart = (e: React.DragEvent, index: number) => {
     setDraggedIndex(index)
     e.dataTransfer.effectAllowed = 'move'
-    e.dataTransfer.setData('text/plain', index.toString())
   }
 
   const handleDragEnter = (e: React.DragEvent, index: number) => {
@@ -102,6 +105,7 @@ export function SectionEditor({ data, onChange }: SectionEditorProps) {
         {data.subsections?.map((sub, i) => (
           <div
             key={sub.id}
+            id={`sub-${sub.id}`}
             draggable
             onDragStart={(e) => handleDragStart(e, i)}
             onDragEnter={(e) => handleDragEnter(e, i)}

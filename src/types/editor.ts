@@ -1,29 +1,37 @@
 export interface TableData {
-  id?: string
   title: string
   headers: string[]
   rows: string[][]
 }
 
 export interface ChartData {
-  id?: string
   title: string
   type: 'line' | 'bar' | 'pie'
   data: Array<{ label: string; value: number }>
 }
 
+export interface TextData {
+  content: string
+}
+
 export interface ImageData {
-  id?: string
   url: string
+  localFile?: File
+  localUrl?: string
+}
+
+export type ArtifactType = 'text' | 'image' | 'table' | 'chart'
+
+export interface Artifact {
+  id: string
+  type: ArtifactType
+  data: TextData | ImageData | TableData | ChartData
 }
 
 export interface SubsectionData {
   id: string
   title: string
-  description: string
-  images: ImageData[]
-  tables: TableData[]
-  charts: ChartData[]
+  artifacts: Artifact[]
 }
 
 export interface SectionFormData {

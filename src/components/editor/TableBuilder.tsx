@@ -19,34 +19,7 @@ interface TableBuilderProps {
 }
 
 export function TableBuilder({ table, onChange }: TableBuilderProps) {
-  if (!table) {
-    return (
-      <Card>
-        <CardContent className="p-6 flex flex-col items-center justify-center text-center space-y-3">
-          <div className="p-3 bg-slate-100 rounded-full">
-            <TableIcon className="w-6 h-6 text-slate-500" />
-          </div>
-          <div>
-            <p className="text-slate-600 font-medium">Nenhuma tabela configurada</p>
-            <p className="text-sm text-slate-400 mb-4">
-              Adicione uma tabela de especificações técnicas para esta seção.
-            </p>
-          </div>
-          <Button
-            onClick={() =>
-              onChange({
-                title: 'Nova Tabela',
-                headers: ['Coluna 1', 'Coluna 2'],
-                rows: [['', '']],
-              })
-            }
-          >
-            <Plus className="w-4 h-4 mr-2" /> Adicionar Tabela
-          </Button>
-        </CardContent>
-      </Card>
-    )
-  }
+  if (!table) return null
 
   const addColumn = () => {
     onChange({
@@ -92,36 +65,34 @@ export function TableBuilder({ table, onChange }: TableBuilderProps) {
   }
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-        <CardTitle className="text-lg font-semibold flex items-center gap-2">
-          <TableIcon className="w-5 h-5 text-primary" />
-          Construtor de Tabela
+    <Card className="border-0 shadow-none bg-transparent">
+      <CardHeader className="p-0 pb-4">
+        <CardTitle className="text-sm font-semibold flex items-center gap-2 text-slate-600">
+          <TableIcon className="w-4 h-4" />
+          Configuração de Tabela
         </CardTitle>
-        <Button variant="destructive" size="sm" onClick={() => onChange(null)}>
-          <Trash2 className="w-4 h-4 mr-2" /> Remover Tabela
-        </Button>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="p-0 space-y-4">
         <div className="flex flex-col sm:flex-row gap-4 sm:items-end">
           <div className="flex-1 space-y-2">
             <Label>Título da Tabela</Label>
             <Input
               value={table.title}
               onChange={(e) => onChange({ ...table, title: e.target.value })}
+              className="bg-white"
             />
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={addColumn}>
-              <Plus className="w-4 h-4 mr-2" /> Coluna
+            <Button variant="outline" size="sm" onClick={addColumn} className="bg-white">
+              <Plus className="w-4 h-4 mr-1" /> Coluna
             </Button>
-            <Button variant="outline" onClick={addRow}>
-              <Plus className="w-4 h-4 mr-2" /> Linha
+            <Button variant="outline" size="sm" onClick={addRow} className="bg-white">
+              <Plus className="w-4 h-4 mr-1" /> Linha
             </Button>
           </div>
         </div>
 
-        <div className="border rounded-lg overflow-x-auto">
+        <div className="border rounded-lg overflow-x-auto bg-white">
           <Table>
             <TableHeader className="bg-slate-50">
               <TableRow>

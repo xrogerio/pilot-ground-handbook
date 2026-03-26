@@ -5,7 +5,14 @@ import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import { SectionEditor } from '@/components/editor/SectionEditor'
 import { HandbookSidebar } from '@/components/HandbookSidebar'
-import { SectionFormData } from '@/types/editor'
+import {
+  SectionFormData,
+  Artifact,
+  TextData,
+  ImageData,
+  TableData,
+  ChartData,
+} from '@/types/editor'
 import { supabase } from '@/lib/supabase/client'
 import { HANDBOOK_SECTIONS } from '@/data/mockHandbookData'
 import { useAppContext } from '@/contexts/AppContext'
@@ -62,76 +69,81 @@ export default function EditAircraft() {
 
           if (subsections && subsections.length > 0) {
             const subIds = subsections.map((s: any) => s.id)
-            const [imagesRes, tablesRes, graphsRes] = await Promise.all([
+            const [imagesRes, tablesRes, graphsRes, textsRes] = await Promise.all([
               (supabase as any).from('images').select('*').in('subsection_id', subIds),
               (supabase as any).from('tables').select('*').in('subsection_id', subIds),
               (supabase as any).from('graphs').select('*').in('subsection_id', subIds),
+              (supabase as any).from('texts').select('*').in('subsection_id', subIds),
             ])
 
-            const formattedSubsections = subsections.map((sub: any) => ({
-              id: sub.id,
-              title: sub.title || '',
-              description: sub.description || '',
-              images:
-                imagesRes.data
-                  ?.filter((img: any) => img.subsection_id === sub.id)
-                  .map((img: any) => ({ id: img.id, url: img.image_url })) || [],
-              tables:
-                tablesRes.data
-                  ?.filter((tbl: any) => tbl.subsection_id === sub.id)
-                  .map((tbl: any) => ({ id: tbl.id, ...(tbl.table_data as any) })) || [],
-              charts:
-                graphsRes.data
-                  ?.filter((g: any) => g.subsection_id === sub.id)
-                  .map((g: any) => ({ id: g.id, type: g.graph_type, ...(g.graph_data as any) })) ||
-                [],
-            }))
+            const formattedSubsections = subsections.map((sub: any) => {
+              const artifacts: Artifact[] = []
+
+              const subImages = imagesRes.data?.filter((i: any) => i.subsection_id === sub.id) || []
+              const subTables = tablesRes.data?.filter((t: any) => t.subsection_id === sub.id) || []
+              const subGraphs = graphsRes.data?.filter((g: any) => g.subsection_id === sub.id) || []
+              const subTexts = textsRes.data?.filter((t: any) => t.subsection_id === sub.id) || []
+
+              subTexts.forEach((t: any) =>
+                artifacts.push({
+                  id: t.id,
+                  type: 'text',
+                  data: { content: t.content },
+                  order: t.order_index || 0,
+                } as any),
+              )
+              subImages.forEach((img: any) =>
+                artifacts.push({
+                  id: img.id,
+                  type: 'image',
+                  data: { url: img.image_url },
+                  order: img.order_index || 0,
+                } as any),
+              )
+              subTables.forEach((tbl: any) =>
+                artifacts.push({
+                  id: tbl.id,
+                  type: 'table',
+                  data: tbl.table_data,
+                  order: tbl.order_index || 0,
+                } as any),
+              )
+              subGraphs.forEach((g: any) =>
+                artifacts.push({
+                  id: g.id,
+                  type: 'chart',
+                  data: { type: g.graph_type, ...g.graph_data },
+                  order: g.order_index || 0,
+                } as any),
+              )
+
+              if (sub.description && subTexts.length === 0) {
+                artifacts.push({
+                  id: crypto.randomUUID(),
+                  type: 'text',
+                  data: { content: sub.description },
+                  order: -1,
+                } as any)
+              }
+
+              artifacts.sort((a: any, b: any) => a.order - b.order)
+
+              return {
+                id: sub.id,
+                title: sub.title || '',
+                artifacts: artifacts.map((a) => ({ id: a.id, type: a.type, data: a.data })),
+              }
+            })
 
             setFormData({
               title: section.section_title || '',
               subsections: formattedSubsections,
             })
           } else {
-            // Legacy fetch
-            const [imagesRes, tablesRes, graphsRes] = await Promise.all([
-              supabase.from('images').select('*').eq('section_id', section.id),
-              supabase.from('tables').select('*').eq('section_id', section.id),
-              supabase.from('graphs').select('*').eq('section_id', section.id),
-            ])
-
-            if (
-              section.content ||
-              imagesRes.data?.length ||
-              tablesRes.data?.length ||
-              graphsRes.data?.length
-            ) {
-              setFormData({
-                title: section.section_title || '',
-                subsections: [
-                  {
-                    id: crypto.randomUUID(),
-                    title: 'Visão Geral',
-                    description: section.content || '',
-                    images:
-                      imagesRes.data?.map((img) => ({ id: img.id, url: img.image_url })) || [],
-                    tables:
-                      tablesRes.data?.map((tbl) => ({ id: tbl.id, ...(tbl.table_data as any) })) ||
-                      [],
-                    charts:
-                      graphsRes.data?.map((g) => ({
-                        id: g.id,
-                        type: g.graph_type,
-                        ...(g.graph_data as any),
-                      })) || [],
-                  },
-                ],
-              })
-            } else {
-              setFormData({
-                title: section.section_title || '',
-                subsections: [],
-              })
-            }
+            setFormData({
+              title: section.section_title || '',
+              subsections: [],
+            })
           }
         } else {
           const defaultTitle = HANDBOOK_SECTIONS.find((s) => s.id === activeSectionId)?.title || ''
@@ -185,6 +197,7 @@ export default function EditAircraft() {
         if (res.error) throw res.error
       }
 
+      await (supabase as any).from('texts').delete().eq('section_id', section.id)
       await (supabase as any).from('images').delete().eq('section_id', section.id)
       await (supabase as any).from('tables').delete().eq('section_id', section.id)
       await (supabase as any).from('graphs').delete().eq('section_id', section.id)
@@ -197,7 +210,6 @@ export default function EditAircraft() {
           .insert({
             section_id: section.id,
             title: sub.title,
-            description: sub.description,
             order_index: i,
           })
           .select()
@@ -205,36 +217,61 @@ export default function EditAircraft() {
 
         if (subErr) throw subErr
 
-        const validImages = sub.images.filter((img) => img.url.trim() !== '')
-        if (validImages.length > 0) {
-          await (supabase as any).from('images').insert(
-            validImages.map((img) => ({
-              section_id: section.id,
-              subsection_id: newSub.id,
-              image_url: img.url,
-            })),
-          )
-        }
+        if (sub.artifacts) {
+          for (let j = 0; j < sub.artifacts.length; j++) {
+            const artifact = sub.artifacts[j]
 
-        if (sub.tables.length > 0) {
-          await (supabase as any).from('tables').insert(
-            sub.tables.map((tbl) => ({
-              section_id: section.id,
-              subsection_id: newSub.id,
-              table_data: tbl as any,
-            })),
-          )
-        }
+            if (artifact.type === 'text') {
+              await (supabase as any).from('texts').insert({
+                section_id: section.id,
+                subsection_id: newSub.id,
+                content: (artifact.data as TextData).content,
+                order_index: j,
+              })
+            } else if (artifact.type === 'image') {
+              const imgData = artifact.data as ImageData
+              let finalUrl = imgData.url
 
-        if (sub.charts.length > 0) {
-          await (supabase as any).from('graphs').insert(
-            sub.charts.map((chart) => ({
-              section_id: section.id,
-              subsection_id: newSub.id,
-              graph_type: chart.type,
-              graph_data: chart as any,
-            })),
-          )
+              if (!finalUrl && imgData.localFile) {
+                const fileExt = imgData.localFile.name.split('.').pop()
+                const fileName = `${crypto.randomUUID()}.${fileExt}`
+                const filePath = `aircrafts/${fileName}`
+
+                const { error: uploadError } = await supabase.storage
+                  .from('images')
+                  .upload(filePath, imgData.localFile)
+
+                if (!uploadError) {
+                  const { data } = supabase.storage.from('images').getPublicUrl(filePath)
+                  finalUrl = data.publicUrl
+                }
+              }
+
+              if (finalUrl) {
+                await (supabase as any).from('images').insert({
+                  section_id: section.id,
+                  subsection_id: newSub.id,
+                  image_url: finalUrl,
+                  order_index: j,
+                })
+              }
+            } else if (artifact.type === 'table') {
+              await (supabase as any).from('tables').insert({
+                section_id: section.id,
+                subsection_id: newSub.id,
+                table_data: artifact.data as TableData,
+                order_index: j,
+              })
+            } else if (artifact.type === 'chart') {
+              await (supabase as any).from('graphs').insert({
+                section_id: section.id,
+                subsection_id: newSub.id,
+                graph_type: (artifact.data as ChartData).type,
+                graph_data: artifact.data as ChartData,
+                order_index: j,
+              })
+            }
+          }
         }
       }
 

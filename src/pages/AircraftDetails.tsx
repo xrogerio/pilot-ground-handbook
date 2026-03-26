@@ -52,58 +52,79 @@ export default function AircraftDetails() {
 
           if (subsections && subsections.length > 0) {
             const subIds = subsections.map((s: any) => s.id)
-            const [imagesRes, tablesRes, graphsRes] = await Promise.all([
+            const [imagesRes, tablesRes, graphsRes, textsRes] = await Promise.all([
               (supabase as any).from('images').select('*').in('subsection_id', subIds),
               (supabase as any).from('tables').select('*').in('subsection_id', subIds),
               (supabase as any).from('graphs').select('*').in('subsection_id', subIds),
+              (supabase as any).from('texts').select('*').in('subsection_id', subIds),
             ])
 
             for (const sub of subsections) {
               if (sub.title) {
                 newBlocks.push({ type: 'subsection_title', title: sub.title })
               }
-              if (sub.description) {
-                newBlocks.push({ type: 'text', content: sub.description })
-              }
 
+              const subItems: any[] = []
+
+              const subTexts = textsRes.data?.filter((t: any) => t.subsection_id === sub.id) || []
               const subImages =
                 imagesRes.data?.filter((img: any) => img.subsection_id === sub.id) || []
-              subImages.forEach((img: any) => {
-                newBlocks.push({ type: 'image', url: img.image_url })
-              })
-
               const subTables =
                 tablesRes.data?.filter((tbl: any) => tbl.subsection_id === sub.id) || []
-              subTables.forEach((tbl: any) => {
-                newBlocks.push({ type: 'table', ...(tbl.table_data as any) })
-              })
-
               const subGraphs = graphsRes.data?.filter((g: any) => g.subsection_id === sub.id) || []
-              subGraphs.forEach((g: any) => {
-                const chartData = g.graph_data as any
-                const chartType = chartData.type || g.graph_type || 'line'
-                const validData = Array.isArray(chartData.data)
-                  ? chartData.data.map((d: any) => ({
-                      ...d,
-                      label: String(d.label || ''),
-                      value: Number(d.value) || 0,
-                    }))
-                  : []
 
-                const config = {
-                  value: { label: 'Valor', color: 'hsl(var(--primary))' },
+              subTexts.forEach((t: any) =>
+                subItems.push({ ...t, _blockType: 'text', order: t.order_index || 0 }),
+              )
+              subImages.forEach((i: any) =>
+                subItems.push({ ...i, _blockType: 'image', order: i.order_index || 0 }),
+              )
+              subTables.forEach((t: any) =>
+                subItems.push({ ...t, _blockType: 'table', order: t.order_index || 0 }),
+              )
+              subGraphs.forEach((g: any) =>
+                subItems.push({ ...g, _blockType: 'chart', order: g.order_index || 0 }),
+              )
+
+              if (sub.description && subTexts.length === 0) {
+                subItems.push({ content: sub.description, _blockType: 'text', order: -1 })
+              }
+
+              subItems.sort((a, b) => a.order - b.order)
+
+              for (const item of subItems) {
+                if (item._blockType === 'text') {
+                  newBlocks.push({ type: 'text', content: item.content })
+                } else if (item._blockType === 'image') {
+                  newBlocks.push({ type: 'image', url: item.image_url })
+                } else if (item._blockType === 'table') {
+                  newBlocks.push({ type: 'table', ...(item.table_data as any) })
+                } else if (item._blockType === 'chart') {
+                  const chartData = item.graph_data as any
+                  const chartType = chartData.type || item.graph_type || 'line'
+                  const validData = Array.isArray(chartData.data)
+                    ? chartData.data.map((d: any) => ({
+                        ...d,
+                        label: String(d.label || ''),
+                        value: Number(d.value) || 0,
+                      }))
+                    : []
+
+                  const config = {
+                    value: { label: 'Valor', color: 'hsl(var(--primary))' },
+                  }
+
+                  newBlocks.push({
+                    type: 'chart',
+                    title: chartData.title || 'Gráfico de Desempenho',
+                    chartType: chartType as 'line' | 'bar' | 'pie',
+                    data: validData,
+                    config,
+                    xKey: 'label',
+                    lines: [{ key: 'value', color: 'var(--color-value)' }],
+                  })
                 }
-
-                newBlocks.push({
-                  type: 'chart',
-                  title: chartData.title || 'Gráfico de Desempenho',
-                  chartType: chartType as 'line' | 'bar' | 'pie',
-                  data: validData,
-                  config,
-                  xKey: 'label',
-                  lines: [{ key: 'value', color: 'var(--color-value)' }],
-                })
-              })
+              }
             }
           } else {
             // Legacy format fallback

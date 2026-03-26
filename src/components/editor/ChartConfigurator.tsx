@@ -18,34 +18,7 @@ interface ChartConfiguratorProps {
 }
 
 export function ChartConfigurator({ chart, onChange }: ChartConfiguratorProps) {
-  if (!chart) {
-    return (
-      <Card>
-        <CardContent className="p-6 flex flex-col items-center justify-center text-center space-y-3">
-          <div className="p-3 bg-slate-100 rounded-full">
-            <BarChart className="w-6 h-6 text-slate-500" />
-          </div>
-          <div>
-            <p className="text-slate-600 font-medium">Nenhum gráfico configurado</p>
-            <p className="text-sm text-slate-400 mb-4">
-              Adicione um gráfico para representar visualmente os dados de desempenho.
-            </p>
-          </div>
-          <Button
-            onClick={() =>
-              onChange({
-                title: 'Novo Gráfico',
-                type: 'line',
-                data: [{ label: 'Ponto 1', value: 10 }],
-              })
-            }
-          >
-            <Plus className="w-4 h-4 mr-2" /> Adicionar Gráfico
-          </Button>
-        </CardContent>
-      </Card>
-    )
-  }
+  if (!chart) return null
 
   const addDataPoint = () => {
     onChange({
@@ -68,23 +41,21 @@ export function ChartConfigurator({ chart, onChange }: ChartConfiguratorProps) {
   }
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-        <CardTitle className="text-lg font-semibold flex items-center gap-2">
-          <BarChart className="w-5 h-5 text-primary" />
+    <Card className="border-0 shadow-none bg-transparent">
+      <CardHeader className="p-0 pb-4">
+        <CardTitle className="text-sm font-semibold flex items-center gap-2 text-slate-600">
+          <BarChart className="w-4 h-4" />
           Configuração de Gráfico
         </CardTitle>
-        <Button variant="destructive" size="sm" onClick={() => onChange(null)}>
-          <Trash2 className="w-4 h-4 mr-2" /> Remover Gráfico
-        </Button>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="p-0 space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label>Título do Gráfico</Label>
             <Input
               value={chart.title}
               onChange={(e) => onChange({ ...chart, title: e.target.value })}
+              className="bg-white"
             />
           </div>
           <div className="space-y-2">
@@ -93,7 +64,7 @@ export function ChartConfigurator({ chart, onChange }: ChartConfiguratorProps) {
               value={chart.type}
               onValueChange={(val: 'line' | 'bar' | 'pie') => onChange({ ...chart, type: val })}
             >
-              <SelectTrigger>
+              <SelectTrigger className="bg-white">
                 <SelectValue placeholder="Selecione o tipo" />
               </SelectTrigger>
               <SelectContent>
@@ -108,25 +79,29 @@ export function ChartConfigurator({ chart, onChange }: ChartConfiguratorProps) {
         <div className="space-y-3">
           <div className="flex justify-between items-center">
             <Label>Dados do Gráfico (Rótulo / Valor)</Label>
-            <Button variant="outline" size="sm" onClick={addDataPoint}>
-              <Plus className="w-4 h-4 mr-2" /> Adicionar Ponto
+            <Button variant="outline" size="sm" onClick={addDataPoint} className="bg-white">
+              <Plus className="w-4 h-4 mr-1" /> Adicionar Ponto
             </Button>
           </div>
           <div className="space-y-2">
             {chart.data.map((point, i) => (
-              <div key={i} className="flex gap-2 items-center">
+              <div
+                key={i}
+                className="flex gap-2 items-center bg-white p-2 rounded-lg border border-slate-200"
+              >
                 <Input
                   value={point.label}
                   onChange={(e) => updateDataPoint(i, 'label', e.target.value)}
                   placeholder="Rótulo"
-                  className="flex-1"
+                  className="flex-1 border-transparent focus-visible:ring-0"
                 />
+                <div className="w-px h-6 bg-slate-200"></div>
                 <Input
                   type="number"
                   value={point.value}
                   onChange={(e) => updateDataPoint(i, 'value', parseFloat(e.target.value) || 0)}
                   placeholder="Valor"
-                  className="w-32"
+                  className="w-32 border-transparent focus-visible:ring-0"
                 />
                 <Button
                   variant="ghost"
@@ -139,7 +114,7 @@ export function ChartConfigurator({ chart, onChange }: ChartConfiguratorProps) {
               </div>
             ))}
             {chart.data.length === 0 && (
-              <p className="text-sm text-slate-500 text-center py-4 border rounded bg-slate-50">
+              <p className="text-sm text-slate-500 text-center py-4 border rounded bg-white">
                 Nenhum dado adicionado.
               </p>
             )}
