@@ -1,9 +1,26 @@
 import { Outlet, useLocation, Link, Navigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
-import { Plane, ChevronRight, LogOut, User as UserIcon, Users, BrainCircuit } from 'lucide-react'
+import {
+  Plane,
+  ChevronRight,
+  LogOut,
+  User as UserIcon,
+  Users,
+  BrainCircuit,
+  KeyRound,
+} from 'lucide-react'
 import { useAppContext } from '@/contexts/AppContext'
 import { useAuth } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { ChangePasswordDialog } from '@/components/ChangePasswordDialog'
 import { supabase } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 
@@ -13,6 +30,7 @@ export default function Layout() {
   const location = useLocation()
 
   const [newStudentsCount, setNewStudentsCount] = useState(0)
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false)
   const isAdmin = profile?.role === 'admin'
 
   useEffect(() => {
@@ -122,19 +140,44 @@ export default function Layout() {
               )}
             </Link>
           )}
-          <div className="hidden lg:flex items-center gap-2 text-sm font-medium text-slate-600 bg-slate-50 py-1.5 px-3 rounded-full border border-slate-200">
-            <UserIcon className="w-4 h-4 text-slate-400" />
-            {user.email}
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => signOut()}
-            className="text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors px-2 sm:px-3"
-          >
-            <LogOut className="w-4 h-4 sm:mr-2" />
-            <span className="hidden sm:inline">Sair</span>
-          </Button>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                className="flex items-center gap-2 text-sm font-medium text-slate-600 bg-slate-50 py-1.5 px-3 rounded-full border border-slate-200 hover:bg-slate-100"
+              >
+                <UserIcon className="w-4 h-4 text-slate-400" />
+                <span className="hidden lg:inline truncate max-w-[200px]">{user.email}</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel className="font-normal">
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium leading-none">Logado como</p>
+                  <p className="text-xs leading-none text-muted-foreground truncate">
+                    {user.email}
+                  </p>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => setIsPasswordDialogOpen(true)}
+                className="cursor-pointer"
+              >
+                <KeyRound className="w-4 h-4 mr-2" />
+                Alterar Senha
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => signOut()}
+                className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Sair
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </header>
 
@@ -177,6 +220,8 @@ export default function Layout() {
           </p>
         </div>
       </footer>
+
+      <ChangePasswordDialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen} />
     </div>
   )
 }

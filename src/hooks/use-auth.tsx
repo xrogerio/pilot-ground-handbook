@@ -12,6 +12,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, role: string) => Promise<{ error: any }>
   signIn: (email: string, password: string) => Promise<{ error: any }>
   signOut: () => Promise<{ error: any }>
+  updatePassword: (currentPassword: string, newPassword: string) => Promise<{ error: any }>
   loading: boolean
 }
 
@@ -91,8 +92,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return { error }
   }
 
+  const updatePassword = async (currentPassword: string, newPassword: string) => {
+    if (!user?.email) return { error: { message: 'Usuário não encontrado' } }
+
+    // Validate current password by trying to sign in
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: user.email,
+      password: currentPassword,
+    })
+
+    if (signInError) {
+      return { error: { message: 'Senha atual incorreta.' } }
+    }
+
+    // Update to new password
+    const { error: updateError } = await supabase.auth.updateUser({
+      password: newPassword,
+    })
+
+    return { error: updateError }
+  }
+
   return (
-    <AuthContext.Provider value={{ user, session, profile, signUp, signIn, signOut, loading }}>
+    <AuthContext.Provider
+      value={{ user, session, profile, signUp, signIn, signOut, updatePassword, loading }}
+    >
       {children}
     </AuthContext.Provider>
   )
