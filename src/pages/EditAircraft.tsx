@@ -332,7 +332,24 @@ export default function EditAircraft() {
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
           ) : (
-            <SectionEditor data={formData} onChange={setFormData} />
+            <div className="flex flex-col">
+              <SectionEditor data={formData} onChange={setFormData} />
+
+              <div className="flex justify-end -mt-4 pb-10">
+                <Button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="gap-2 shrink-0 bg-blue-600 hover:bg-blue-700"
+                >
+                  {saving ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4" />
+                  )}
+                  Salvar Alterações
+                </Button>
+              </div>
+            </div>
           )}
         </div>
       </div>

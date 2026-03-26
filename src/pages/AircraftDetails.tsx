@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, Pencil, Settings2 } from 'lucide-react'
+import { ArrowLeft, Pencil, Settings2, CheckSquare, Loader2 } from 'lucide-react'
 import { useAppContext } from '@/contexts/AppContext'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -10,12 +10,17 @@ import { HandbookContent } from '@/components/HandbookContent'
 import { HANDBOOK_SECTIONS } from '@/data/mockHandbookData'
 import { supabase } from '@/lib/supabase/client'
 import { ContentBlock } from '@/types/handbook'
+import { useAuth } from '@/hooks/use-auth'
+import { useToast } from '@/hooks/use-toast'
+import { cn } from '@/lib/utils'
 
 export default function AircraftDetails() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { role, aircrafts } = useAppContext()
+  const { user } = useAuth()
+  const { toast } = useToast()
 
   const [activeSectionId, setActiveSectionId] = useState<string>(
     searchParams.get('section') || HANDBOOK_SECTIONS[0].id,
@@ -23,7 +28,31 @@ export default function AircraftDetails() {
   const [blocks, setBlocks] = useState<ContentBlock[]>([])
   const [loadingContent, setLoadingContent] = useState(true)
 
+  const [enrollment, setEnrollment] = useState<any>(null)
+  const [updatingProgress, setUpdatingProgress] = useState(false)
+
   const aircraft = aircrafts.find((a) => a.id === id)
+
+  useEffect(() => {
+    if (role === 'aluno' && aircraft && user) {
+      let mounted = true
+      const fetchEnrollment = async () => {
+        const { data } = await supabase
+          .from('enrollments')
+          .select('*')
+          .eq('student_id', user.id)
+          .eq('aircraft_id', aircraft.id)
+          .maybeSingle()
+        if (mounted && data) {
+          setEnrollment(data)
+        }
+      }
+      fetchEnrollment()
+      return () => {
+        mounted = false
+      }
+    }
+  }, [role, aircraft, user])
 
   useEffect(() => {
     if (!aircraft) return
@@ -127,7 +156,6 @@ export default function AircraftDetails() {
               }
             }
           } else {
-            // Legacy format fallback
             const [imagesRes, tablesRes, graphsRes] = await Promise.all([
               supabase.from('images').select('*').eq('section_id', section.id),
               supabase.from('tables').select('*').eq('section_id', section.id),
@@ -203,6 +231,52 @@ export default function AircraftDetails() {
       mounted = false
     }
   }, [aircraft, activeSectionId])
+
+  const handleMarkCompleted = async () => {
+    if (!enrollment || !user || !aircraft) return
+    setUpdatingProgress(true)
+    try {
+      const completed = enrollment.completed_sections || []
+      if (!completed.includes(activeSectionId)) {
+        const newCompleted = [...completed, activeSectionId]
+        const newProgress = Math.min(
+          100,
+          Math.round((newCompleted.length / HANDBOOK_SECTIONS.length) * 100),
+        )
+
+        const { error } = await supabase
+          .from('enrollments')
+          .update({
+            completed_sections: newCompleted,
+            progress_percentage: newProgress,
+          })
+          .eq('id', enrollment.id)
+
+        if (error) throw error
+
+        setEnrollment({
+          ...enrollment,
+          completed_sections: newCompleted,
+          progress_percentage: newProgress,
+        })
+        toast({
+          title: 'Seção Concluída!',
+          description: `Seu progresso no manual foi atualizado para ${newProgress}%.`,
+        })
+      }
+    } catch (err) {
+      console.error(err)
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível atualizar o progresso.',
+        variant: 'destructive',
+      })
+    } finally {
+      setUpdatingProgress(false)
+    }
+  }
+
+  const isSectionCompleted = enrollment?.completed_sections?.includes(activeSectionId)
 
   if (!aircraft) {
     return (
@@ -298,7 +372,31 @@ export default function AircraftDetails() {
                   <Settings2 className="w-8 h-8 animate-spin text-slate-300" />
                 </div>
               ) : (
-                <HandbookContent blocks={blocks} />
+                <div className="flex flex-col">
+                  <HandbookContent blocks={blocks} />
+
+                  {role === 'aluno' && (
+                    <div className="mt-2 pt-6 border-t border-slate-100 flex justify-end">
+                      <Button
+                        onClick={handleMarkCompleted}
+                        disabled={isSectionCompleted || updatingProgress}
+                        className={cn(
+                          'gap-2 h-11 px-6 font-medium transition-all',
+                          isSectionCompleted
+                            ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
+                            : 'bg-blue-600 hover:bg-blue-700',
+                        )}
+                      >
+                        {updatingProgress ? (
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                        ) : (
+                          <CheckSquare className="w-5 h-5" />
+                        )}
+                        {isSectionCompleted ? 'Seção Concluída' : 'Marcar Seção como Concluída'}
+                      </Button>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </Card>
