@@ -39,3 +39,11 @@ export interface SectionFormData {
   thumbnail?: ImageData
   subsections: SubsectionData[]
 }
+
+export interface PDFData {
+  id?: string
+  title: string
+  url: string
+  localFile?: File
+  localUrl?: string
+}

@@ -2,6 +2,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
 import { HANDBOOK_SECTIONS } from '@/data/mockHandbookData'
+import { FileText } from 'lucide-react'
 
 interface HandbookSidebarProps {
   activeSectionId: string
@@ -47,6 +48,34 @@ export function HandbookSidebar({ activeSectionId, onSelect }: HandbookSidebarPr
               </Button>
             )
           })}
+
+          <div className="hidden lg:block my-2 border-t border-slate-100" />
+          <div className="lg:hidden w-px h-10 bg-slate-200 mx-1 self-center" />
+
+          <Button
+            variant={activeSectionId === 'docs' ? 'secondary' : 'ghost'}
+            onClick={() => onSelect('docs')}
+            className={cn(
+              'justify-start font-medium transition-all shrink-0 whitespace-nowrap lg:whitespace-normal h-auto py-3',
+              activeSectionId === 'docs'
+                ? 'bg-red-50 text-red-700 hover:bg-red-100 hover:text-red-800 border border-red-100'
+                : 'text-slate-600 hover:text-primary hover:bg-slate-50 border border-transparent',
+            )}
+          >
+            <div
+              className={cn(
+                'mr-3 p-1.5 rounded-md transition-colors',
+                activeSectionId === 'docs'
+                  ? 'bg-red-100 text-red-600'
+                  : 'bg-slate-100 text-slate-400',
+              )}
+            >
+              <FileText className="w-4 h-4" />
+            </div>
+            <span className="text-left w-full truncate lg:whitespace-normal">
+              Documentos Originais
+            </span>
+          </Button>
         </div>
         <ScrollBar orientation="horizontal" className="lg:hidden" />
       </ScrollArea>

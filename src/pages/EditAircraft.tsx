@@ -4,9 +4,11 @@ import { ArrowLeft, Save, Loader2, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import { SectionEditor } from '@/components/editor/SectionEditor'
+import { PDFEditor } from '@/components/editor/PDFEditor'
 import { HandbookSidebar } from '@/components/HandbookSidebar'
 import {
   SectionFormData,
+  PDFData,
   Artifact,
   TextData,
   ImageData,
@@ -34,6 +36,8 @@ export default function EditAircraft() {
     thumbnail: { url: '' },
     subsections: [],
   })
+  const [pdfData, setPdfData] = useState<PDFData[]>([])
+
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
 
@@ -54,6 +58,20 @@ export default function EditAircraft() {
     const fetchSectionData = async () => {
       setLoading(true)
       try {
+        if (activeSectionId === 'docs') {
+          const { data: pdfsRes } = await supabase
+            .from('pdfs')
+            .select('*')
+            .eq('aircraft_id', id)
+            .order('created_at', { ascending: true })
+          if (pdfsRes) {
+            setPdfData(pdfsRes.map((p: any) => ({ id: p.id, title: p.pdf_title, url: p.pdf_url })))
+          } else {
+            setPdfData([])
+          }
+          return
+        }
+
         const [aircraftRes, sectionRes] = await Promise.all([
           supabase.from('aircraft').select('image_url').eq('id', id).single(),
           supabase
@@ -163,7 +181,7 @@ export default function EditAircraft() {
           })
         }
       } catch (err) {
-        console.error('Error fetching section', err)
+        console.error('Error fetching data', err)
       } finally {
         setLoading(false)
       }
@@ -175,6 +193,61 @@ export default function EditAircraft() {
     if (!id) return
     setSaving(true)
     try {
+      if (activeSectionId === 'docs') {
+        const existingPdfs = await supabase.from('pdfs').select('id').eq('aircraft_id', id)
+        const existingIds = existingPdfs.data?.map((p) => p.id) || []
+
+        const currentIds = pdfData.filter((p) => p.id).map((p) => p.id)
+        const idsToDelete = existingIds.filter((eid) => !currentIds.includes(eid))
+
+        if (idsToDelete.length > 0) {
+          await supabase.from('pdfs').delete().in('id', idsToDelete)
+        }
+
+        for (const pdf of pdfData) {
+          let finalUrl = pdf.url
+
+          if (!finalUrl && pdf.localFile) {
+            const fileExt = pdf.localFile.name.split('.').pop()
+            const fileName = `aircrafts/${id}-pdf-${crypto.randomUUID()}.${fileExt}`
+
+            const { error: uploadError } = await supabase.storage
+              .from('pdfs')
+              .upload(fileName, pdf.localFile)
+
+            if (!uploadError) {
+              const { data } = supabase.storage.from('pdfs').getPublicUrl(fileName)
+              finalUrl = data.publicUrl
+            }
+          }
+
+          if (finalUrl) {
+            if (pdf.id) {
+              await supabase
+                .from('pdfs')
+                .update({ pdf_title: pdf.title, pdf_url: finalUrl })
+                .eq('id', pdf.id)
+            } else {
+              await supabase
+                .from('pdfs')
+                .insert({ aircraft_id: id, pdf_title: pdf.title, pdf_url: finalUrl })
+            }
+          }
+        }
+
+        toast({ title: 'Sucesso', description: 'Documentos salvos com sucesso na base de dados.' })
+
+        const { data: pdfsRes } = await supabase
+          .from('pdfs')
+          .select('*')
+          .eq('aircraft_id', id)
+          .order('created_at', { ascending: true })
+        if (pdfsRes) {
+          setPdfData(pdfsRes.map((p: any) => ({ id: p.id, title: p.pdf_title, url: p.pdf_url })))
+        }
+        return
+      }
+
       // Save aircraft thumbnail
       if (formData.thumbnail) {
         let finalThumbUrl = formData.thumbnail.url
@@ -315,7 +388,7 @@ export default function EditAircraft() {
       toast({ title: 'Sucesso', description: 'Seção salva com sucesso na base de dados.' })
     } catch (err) {
       console.error(err)
-      toast({ title: 'Erro', description: 'Erro ao salvar seção.', variant: 'destructive' })
+      toast({ title: 'Erro', description: 'Erro ao salvar alterações.', variant: 'destructive' })
     } finally {
       setSaving(false)
     }
@@ -347,7 +420,10 @@ export default function EditAircraft() {
             Modo de Edição
           </h1>
           <p className="text-muted-foreground mt-1">
-            Seção atual: {HANDBOOK_SECTIONS.find((s) => s.id === activeSectionId)?.title}
+            Seção atual:{' '}
+            {activeSectionId === 'docs'
+              ? 'Documentos Originais'
+              : HANDBOOK_SECTIONS.find((s) => s.id === activeSectionId)?.title}
           </p>
         </div>
         <Button
@@ -370,7 +446,11 @@ export default function EditAircraft() {
             </div>
           ) : (
             <div className="flex flex-col">
-              <SectionEditor data={formData} onChange={setFormData} />
+              {activeSectionId === 'docs' ? (
+                <PDFEditor data={pdfData} onChange={setPdfData} />
+              ) : (
+                <SectionEditor data={formData} onChange={setFormData} />
+              )}
 
               <div className="flex justify-end -mt-4 pb-10">
                 <Button

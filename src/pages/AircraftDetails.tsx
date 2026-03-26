@@ -1,6 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, Pencil, Settings2, CheckSquare, Loader2 } from 'lucide-react'
+import {
+  ArrowLeft,
+  Pencil,
+  Settings2,
+  CheckSquare,
+  Loader2,
+  Download,
+  FileText,
+} from 'lucide-react'
 import { useAppContext } from '@/contexts/AppContext'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -26,6 +34,7 @@ export default function AircraftDetails() {
     searchParams.get('section') || HANDBOOK_SECTIONS[0].id,
   )
   const [blocks, setBlocks] = useState<ContentBlock[]>([])
+  const [pdfs, setPdfs] = useState<any[]>([])
   const [loadingContent, setLoadingContent] = useState(true)
 
   const [enrollment, setEnrollment] = useState<any>(null)
@@ -61,6 +70,22 @@ export default function AircraftDetails() {
     const fetchContent = async () => {
       setLoadingContent(true)
       try {
+        if (activeSectionId === 'docs') {
+          const { data: pdfsRes, error: pdfsErr } = await supabase
+            .from('pdfs')
+            .select('*')
+            .eq('aircraft_id', aircraft.id)
+            .order('created_at', { ascending: true })
+
+          if (pdfsErr) throw pdfsErr
+
+          if (mounted) {
+            setPdfs(pdfsRes || [])
+            setBlocks([])
+          }
+          return
+        }
+
         const { data: section, error } = await supabase
           .from('sections')
           .select('*')
@@ -293,7 +318,10 @@ export default function AircraftDetails() {
     )
   }
 
-  const activeSection = HANDBOOK_SECTIONS.find((s) => s.id === activeSectionId)
+  const activeSection =
+    activeSectionId === 'docs'
+      ? { id: 'docs', title: 'Documentos Originais', icon: FileText }
+      : HANDBOOK_SECTIONS.find((s) => s.id === activeSectionId)
 
   return (
     <div className="space-y-6 lg:space-y-8 animate-fade-in-up">
@@ -338,7 +366,14 @@ export default function AircraftDetails() {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 pb-6 border-b border-slate-100">
               <div className="flex items-center gap-3">
                 {activeSection && (
-                  <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                  <div
+                    className={cn(
+                      'p-2 rounded-lg',
+                      activeSection.id === 'docs'
+                        ? 'bg-red-50 text-red-600'
+                        : 'bg-blue-50 text-blue-600',
+                    )}
+                  >
                     <activeSection.icon className="w-6 h-6" />
                   </div>
                 )}
@@ -347,7 +382,9 @@ export default function AircraftDetails() {
                     {activeSection?.title}
                   </h2>
                   <p className="text-sm text-slate-500 mt-1 font-medium">
-                    Seção {activeSection?.id}
+                    {activeSection?.id === 'docs'
+                      ? 'Arquivos Anexos'
+                      : `Seção ${activeSection?.id}`}
                   </p>
                 </div>
               </div>
@@ -360,7 +397,7 @@ export default function AircraftDetails() {
                 >
                   <Link to={`/aircraft/${aircraft.id}/edit?section=${activeSectionId}`}>
                     <Pencil className="w-4 h-4" />
-                    Editar Seção
+                    {activeSectionId === 'docs' ? 'Editar Documentos' : 'Editar Seção'}
                   </Link>
                 </Button>
               )}
@@ -373,28 +410,73 @@ export default function AircraftDetails() {
                 </div>
               ) : (
                 <div className="flex flex-col">
-                  <HandbookContent blocks={blocks} />
-
-                  {role === 'aluno' && (
-                    <div className="mt-2 pt-6 border-t border-slate-100 flex justify-end">
-                      <Button
-                        onClick={handleMarkCompleted}
-                        disabled={isSectionCompleted || updatingProgress}
-                        className={cn(
-                          'gap-2 h-11 px-6 font-medium transition-all',
-                          isSectionCompleted
-                            ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
-                            : 'bg-blue-600 hover:bg-blue-700',
-                        )}
-                      >
-                        {updatingProgress ? (
-                          <Loader2 className="w-5 h-5 animate-spin" />
-                        ) : (
-                          <CheckSquare className="w-5 h-5" />
-                        )}
-                        {isSectionCompleted ? 'Seção Concluída' : 'Marcar Seção como Concluída'}
-                      </Button>
+                  {activeSectionId === 'docs' ? (
+                    <div className="space-y-4 pb-10">
+                      {pdfs.length > 0 ? (
+                        pdfs.map((pdf) => (
+                          <a
+                            key={pdf.id}
+                            href={pdf.pdf_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-4 p-5 border border-slate-200 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm bg-white group"
+                          >
+                            <div className="p-3 bg-red-50 text-red-600 rounded-lg group-hover:bg-red-100 transition-colors shrink-0">
+                              <FileText className="w-6 h-6" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="text-lg font-bold text-slate-800 truncate">
+                                {pdf.pdf_title}
+                              </h3>
+                              <p className="text-sm text-slate-500 mt-0.5 truncate">
+                                Clique para visualizar ou baixar o documento original
+                              </p>
+                            </div>
+                            <div className="p-2.5 bg-slate-100 rounded-full text-slate-500 group-hover:bg-blue-600 group-hover:text-white transition-colors shrink-0">
+                              <Download className="w-5 h-5" />
+                            </div>
+                          </a>
+                        ))
+                      ) : (
+                        <div className="text-center py-16 border-2 border-dashed border-slate-300 rounded-2xl bg-slate-50">
+                          <div className="bg-slate-200 p-4 rounded-full mb-4 inline-block">
+                            <FileText className="w-8 h-8 text-slate-500" />
+                          </div>
+                          <p className="text-lg font-medium text-slate-600">
+                            Nenhum documento disponível
+                          </p>
+                          <p className="text-slate-500 mt-1">
+                            Os manuais e PDFs ainda não foram carregados para esta aeronave.
+                          </p>
+                        </div>
+                      )}
                     </div>
+                  ) : (
+                    <>
+                      <HandbookContent blocks={blocks} />
+
+                      {role === 'aluno' && (
+                        <div className="mt-2 pt-6 border-t border-slate-100 flex justify-end">
+                          <Button
+                            onClick={handleMarkCompleted}
+                            disabled={isSectionCompleted || updatingProgress}
+                            className={cn(
+                              'gap-2 h-11 px-6 font-medium transition-all',
+                              isSectionCompleted
+                                ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
+                                : 'bg-blue-600 hover:bg-blue-700',
+                            )}
+                          >
+                            {updatingProgress ? (
+                              <Loader2 className="w-5 h-5 animate-spin" />
+                            ) : (
+                              <CheckSquare className="w-5 h-5" />
+                            )}
+                            {isSectionCompleted ? 'Seção Concluída' : 'Marcar Seção como Concluída'}
+                          </Button>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               )}
