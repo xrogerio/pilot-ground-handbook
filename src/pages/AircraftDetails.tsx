@@ -26,7 +26,7 @@ export default function AircraftDetails() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { role, aircrafts } = useAppContext()
+  const { role, aircrafts, refreshAircrafts } = useAppContext()
   const { user } = useAuth()
   const { toast } = useToast()
 
@@ -257,38 +257,47 @@ export default function AircraftDetails() {
     }
   }, [aircraft, activeSectionId])
 
-  const handleMarkCompleted = async () => {
+  const handleToggleCompleted = async () => {
     if (!enrollment || !user || !aircraft) return
     setUpdatingProgress(true)
     try {
       const completed = enrollment.completed_sections || []
-      if (!completed.includes(activeSectionId)) {
-        const newCompleted = [...completed, activeSectionId]
-        const newProgress = Math.min(
-          100,
-          Math.round((newCompleted.length / HANDBOOK_SECTIONS.length) * 100),
-        )
+      const isCompleted = completed.includes(activeSectionId)
 
-        const { error } = await supabase
-          .from('enrollments')
-          .update({
-            completed_sections: newCompleted,
-            progress_percentage: newProgress,
-          })
-          .eq('id', enrollment.id)
+      let newCompleted: string[]
+      if (isCompleted) {
+        newCompleted = completed.filter((id: string) => id !== activeSectionId)
+      } else {
+        newCompleted = [...completed, activeSectionId]
+      }
 
-        if (error) throw error
+      const newProgress = Math.min(
+        100,
+        Math.max(0, Math.round((newCompleted.length / HANDBOOK_SECTIONS.length) * 100)),
+      )
 
-        setEnrollment({
-          ...enrollment,
+      const { error } = await supabase
+        .from('enrollments')
+        .update({
           completed_sections: newCompleted,
           progress_percentage: newProgress,
         })
-        toast({
-          title: 'Seção Concluída!',
-          description: `Seu progresso no manual foi atualizado para ${newProgress}%.`,
-        })
-      }
+        .eq('id', enrollment.id)
+
+      if (error) throw error
+
+      setEnrollment({
+        ...enrollment,
+        completed_sections: newCompleted,
+        progress_percentage: newProgress,
+      })
+
+      await refreshAircrafts()
+
+      toast({
+        title: isCompleted ? 'Seção Desmarcada' : 'Seção Concluída!',
+        description: `Seu progresso no manual foi atualizado para ${newProgress}%.`,
+      })
     } catch (err) {
       console.error(err)
       toast({
@@ -458,13 +467,13 @@ export default function AircraftDetails() {
                       {role === 'aluno' && (
                         <div className="mt-2 pt-6 border-t border-slate-100 flex justify-end">
                           <Button
-                            onClick={handleMarkCompleted}
-                            disabled={isSectionCompleted || updatingProgress}
+                            onClick={handleToggleCompleted}
+                            disabled={updatingProgress}
                             className={cn(
                               'gap-2 h-11 px-6 font-medium transition-all',
                               isSectionCompleted
-                                ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
-                                : 'bg-blue-600 hover:bg-blue-700',
+                                ? 'bg-slate-200 hover:bg-slate-300 text-slate-700'
+                                : 'bg-emerald-500 hover:bg-emerald-600 text-white',
                             )}
                           >
                             {updatingProgress ? (
@@ -472,7 +481,7 @@ export default function AircraftDetails() {
                             ) : (
                               <CheckSquare className="w-5 h-5" />
                             )}
-                            {isSectionCompleted ? 'Seção Concluída' : 'Marcar Seção como Concluída'}
+                            {isSectionCompleted ? 'Desmarcar Seção' : 'Marcar Seção como Concluída'}
                           </Button>
                         </div>
                       )}
