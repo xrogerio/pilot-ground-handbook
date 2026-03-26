@@ -1,12 +1,15 @@
 import { useState, useMemo } from 'react'
-import { Search, PlaneTakeoff, Loader2 } from 'lucide-react'
+import { Search, PlaneTakeoff, Loader2, Plus } from 'lucide-react'
 import { useAppContext } from '@/contexts/AppContext'
 import { AircraftCard } from '@/components/AircraftCard'
 import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { CreateAircraftDialog } from '@/components/CreateAircraftDialog'
 
 export default function Index() {
-  const { role, aircrafts, loadingAircrafts } = useAppContext()
+  const { role, aircrafts, loadingAircrafts, refreshAircrafts } = useAppContext()
   const [search, setSearch] = useState('')
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
 
   const filteredAircrafts = useMemo(() => {
     return aircrafts.filter((aircraft) => {
@@ -40,14 +43,22 @@ export default function Index() {
               : 'Acesse os manuais das aeronaves vinculadas a você.'}
           </p>
         </div>
-        <div className="relative w-full md:w-72 group">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
-          <Input
-            placeholder="Buscar aeronave..."
-            className="pl-9 bg-white border-slate-200 shadow-sm focus-visible:ring-blue-500 transition-all h-11"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+        <div className="flex w-full md:w-auto items-center gap-3">
+          <div className="relative w-full md:w-72 group">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
+            <Input
+              placeholder="Buscar aeronave..."
+              className="pl-9 bg-white border-slate-200 shadow-sm focus-visible:ring-blue-500 transition-all h-11"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          {role === 'adm' && (
+            <Button onClick={() => setIsCreateOpen(true)} className="h-11 shrink-0 px-4 shadow-sm">
+              <Plus className="w-5 h-5 md:mr-2" />
+              <span className="hidden md:inline">Nova Aeronave</span>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -69,6 +80,12 @@ export default function Index() {
           </p>
         </div>
       )}
+
+      <CreateAircraftDialog
+        open={isCreateOpen}
+        onOpenChange={setIsCreateOpen}
+        onSuccess={refreshAircrafts}
+      />
     </div>
   )
 }
