@@ -12,7 +12,7 @@ Deno.serve(async (req: Request) => {
 
     const geminiKey = Deno.env.get('Default Gemini API Key')
 
-    const prompt = `Liste 10 aeronaves mais utilizadas em voos de instrução em ${region}. Para cada uma, forneça: nome, modelo, imagem URL (busque em commons.wikimedia.org ou similar), resumo de 500 caracteres máximo, tabela de performance (velocidade máxima, autonomia, peso máximo, teto de serviço), e gráfico de performance em JSON (tipo: 'bar', dados: velocidades comparadas). Retorne em JSON estruturado no formato exato a seguir:
+    const prompt = `Liste 5 aeronaves mais utilizadas em voos de instrução em ${region}. Para cada uma, forneça: nome, modelo, imagem URL (busque em commons.wikimedia.org ou similar), resumo de 500 caracteres máximo, tabela de performance (velocidade máxima, autonomia, peso máximo, teto de serviço), e gráfico de performance em JSON (tipo: 'bar', dados: velocidades comparadas). Retorne em JSON estruturado no formato exato a seguir:
 {
   "suggestions": [
     {
