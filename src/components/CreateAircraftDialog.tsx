@@ -65,6 +65,7 @@ export function CreateAircraftDialog({ open, onOpenChange, onSuccess }: CreateAi
       })
 
       if (error) throw error
+      if (data?.error) throw new Error(data.error)
 
       if (data?.suggestions) {
         setSuggestions(data.suggestions)
@@ -72,10 +73,9 @@ export function CreateAircraftDialog({ open, onOpenChange, onSuccess }: CreateAi
         throw new Error('Formato inválido retornado pela IA')
       }
     } catch (error: any) {
-      console.error('Error suggesting aircraft:', error)
       toast({
         title: 'Erro na busca',
-        description: 'Não foi possível buscar sugestões. Tente novamente.',
+        description: error.message || 'Não foi possível buscar sugestões. Tente novamente.',
         variant: 'destructive',
       })
     } finally {
@@ -114,7 +114,6 @@ export function CreateAircraftDialog({ open, onOpenChange, onSuccess }: CreateAi
       onSuccess()
       onOpenChange(false)
     } catch (error: any) {
-      console.error('Error creating aircraft:', error)
       toast({
         title: 'Erro ao criar',
         description: 'Ocorreu um problema ao tentar salvar a aeronave. Tente novamente.',
