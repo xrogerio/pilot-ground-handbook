@@ -1,8 +1,8 @@
 {
   "_versions": {
-    "generate-quiz": 4,
-    "suggest-aircraft": 6,
-    "aircraft-chat": 2,
-    "translate-aircraft": 2
+    "generate-quiz": 5,
+    "suggest-aircraft": 7,
+    "aircraft-chat": 3,
+    "translate-aircraft": 3
   }
 }
