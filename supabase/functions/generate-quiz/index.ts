@@ -16,25 +16,25 @@ Deno.serve(async (req: Request) => {
       questions: [
         {
           id: 1,
-          question: 'Qual é a velocidade de nunca exceder (Vne) desta aeronave?',
-          options: ['110 KIAS', '149 KIAS', '163 KIAS', '180 KIAS'],
+          question: "Qual é a velocidade de nunca exceder (Vne) desta aeronave?",
+          options: ["110 KIAS", "149 KIAS", "163 KIAS", "180 KIAS"],
           correctOptionIndex: 1,
-          explanation: 'A Vne (Velocidade Nunca Exceder) é o limite máximo estrutural.',
+          explanation: "A Vne (Velocidade Nunca Exceder) é o limite máximo estrutural."
         },
         {
           id: 2,
-          question: 'Qual o peso máximo de decolagem aprovado?',
-          options: ['1500 lbs', '1670 lbs', '2100 lbs', '2550 lbs'],
+          question: "Qual o peso máximo de decolagem aprovado?",
+          options: ["1500 lbs", "1670 lbs", "2100 lbs", "2550 lbs"],
           correctOptionIndex: 1,
-          explanation:
-            'Consultar o manual de voo (POH) para os limites de peso e balanceamento atualizados.',
-        },
-      ],
+          explanation: "Consultar o manual de voo (POH) para os limites de peso e balanceamento atualizados."
+        }
+      ]
     }
 
     return new Response(JSON.stringify(mockData), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
+
   } catch (error: any) {
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
