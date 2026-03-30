@@ -8,7 +8,6 @@ import Index from './pages/Index'
 import AircraftDetails from './pages/AircraftDetails'
 import EditAircraft from './pages/EditAircraft'
 import StudentManagement from './pages/StudentManagement'
-import QuizGenerator from './pages/QuizGenerator'
 import ComparisonDashboard from './pages/ComparisonDashboard'
 import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
@@ -30,7 +29,6 @@ const App = () => (
               <Route path="/aircraft/:id" element={<AircraftDetails />} />
               <Route path="/aircraft/:id/edit" element={<EditAircraft />} />
               <Route path="/students" element={<StudentManagement />} />
-              <Route path="/quiz" element={<QuizGenerator />} />
               <Route path="/compare" element={<ComparisonDashboard />} />
             </Route>
             <Route path="*" element={<NotFound />} />

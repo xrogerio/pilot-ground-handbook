@@ -6,7 +6,6 @@ import {
   LogOut,
   User as UserIcon,
   Users,
-  BrainCircuit,
   KeyRound,
   Settings,
   BarChart2,
@@ -111,7 +110,6 @@ export default function Layout() {
   const pathParts = location.pathname.split('/').filter(Boolean)
   const isDetails = pathParts[0] === 'aircraft' && pathParts[1]
   const isStudents = pathParts[0] === 'students'
-  const isQuiz = pathParts[0] === 'quiz'
   const isCompare = pathParts[0] === 'compare'
   const currentAircraft = isDetails ? aircrafts.find((a) => a.id === pathParts[1]) : null
 
@@ -129,16 +127,6 @@ export default function Layout() {
           <span className="sm:hidden tracking-tight">PGH</span>
         </Link>
         <div className="flex items-center gap-3 sm:gap-4">
-          {!isAdmin && (
-            <Link
-              to="/quiz"
-              className="flex items-center gap-2 text-sm font-medium text-slate-600 bg-slate-50 py-1.5 px-3 rounded-full border border-slate-200 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-200 transition-colors"
-            >
-              <BrainCircuit className="w-4 h-4 text-purple-500" />
-              <span className="hidden md:inline">Quiz IA</span>
-            </Link>
-          )}
-
           <Link
             to="/compare"
             className="flex items-center gap-2 text-sm font-medium text-slate-600 bg-slate-50 py-1.5 px-3 rounded-full border border-slate-200 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 transition-colors"
@@ -229,12 +217,6 @@ export default function Layout() {
             <>
               <ChevronRight className="w-4 h-4 mx-1 opacity-50" />
               <span className="text-primary">Gestão de Alunos</span>
-            </>
-          )}
-          {isQuiz && (
-            <>
-              <ChevronRight className="w-4 h-4 mx-1 opacity-50" />
-              <span className="text-primary">Gerador de Quiz IA</span>
             </>
           )}
           {isCompare && (
