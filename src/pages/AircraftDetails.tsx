@@ -345,20 +345,20 @@ export default function AircraftDetails() {
             Voltar para Frota
           </Link>
         </Button>
-        <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-4 pb-6 border-b border-slate-200">
+        <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-4 pb-6 border-b border-border">
           <div>
             <div className="flex items-center gap-3 mb-2">
               <Badge
                 variant="secondary"
                 className={
                   aircraft.linked
-                    ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:hover:bg-emerald-900/50'
+                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
                 }
               >
                 {aircraft.linked ? 'Vinculada' : 'Não Vinculada'}
               </Badge>
-              <span className="text-sm font-medium text-slate-500">ID: #{aircraft.id}</span>
+              <span className="text-sm font-medium text-muted-foreground">ID: #{aircraft.id}</span>
             </div>
             <h1 className="text-3xl md:text-4xl font-extrabold text-primary tracking-tight">
               {aircraft.name}
@@ -371,16 +371,16 @@ export default function AircraftDetails() {
         <HandbookSidebar activeSectionId={activeSectionId} onSelect={setActiveSectionId} />
 
         <div className="flex-1 w-full min-w-0">
-          <Card className="min-h-[500px] border-slate-200 shadow-sm p-5 md:p-8 rounded-2xl bg-white">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 pb-6 border-b border-slate-100">
+          <Card className="min-h-[500px] border-border shadow-sm p-5 md:p-8 rounded-2xl bg-card text-card-foreground">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 pb-6 border-b border-border/50">
               <div className="flex items-center gap-3">
                 {activeSection && (
                   <div
                     className={cn(
                       'p-2 rounded-lg',
                       activeSection.id === 'docs'
-                        ? 'bg-red-50 text-red-600'
-                        : 'bg-blue-50 text-blue-600',
+                        ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400'
+                        : 'bg-primary/10 text-primary',
                     )}
                   >
                     <activeSection.icon className="w-6 h-6" />
@@ -390,7 +390,7 @@ export default function AircraftDetails() {
                   <h2 className="text-2xl font-bold text-primary leading-none">
                     {activeSection?.title}
                   </h2>
-                  <p className="text-sm text-slate-500 mt-1 font-medium">
+                  <p className="text-sm text-muted-foreground mt-1 font-medium">
                     {activeSection?.id === 'docs'
                       ? 'Arquivos Anexos'
                       : `Seção ${activeSection?.id}`}
@@ -401,7 +401,7 @@ export default function AircraftDetails() {
               {role === 'adm' && (
                 <Button
                   variant="outline"
-                  className="gap-2 shrink-0 border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800 transition-colors"
+                  className="gap-2 shrink-0 border-primary/20 text-primary hover:bg-primary/10 hover:text-primary transition-colors"
                   asChild
                 >
                   <Link to={`/aircraft/${aircraft.id}/edit?section=${activeSectionId}`}>
@@ -415,7 +415,7 @@ export default function AircraftDetails() {
             <div key={activeSectionId} className="animate-fade-in">
               {loadingContent ? (
                 <div className="flex h-64 items-center justify-center">
-                  <Settings2 className="w-8 h-8 animate-spin text-slate-300" />
+                  <Settings2 className="w-8 h-8 animate-spin text-muted-foreground/30" />
                 </div>
               ) : (
                 <div className="flex flex-col">
@@ -428,33 +428,33 @@ export default function AircraftDetails() {
                             href={pdf.pdf_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center gap-4 p-5 border border-slate-200 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm bg-white group"
+                            className="flex items-center gap-4 p-5 border border-border rounded-xl hover:bg-muted/50 hover:border-border transition-all shadow-sm bg-card group"
                           >
-                            <div className="p-3 bg-red-50 text-red-600 rounded-lg group-hover:bg-red-100 transition-colors shrink-0">
+                            <div className="p-3 bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400 rounded-lg group-hover:bg-red-100 dark:group-hover:bg-red-900/50 transition-colors shrink-0">
                               <FileText className="w-6 h-6" />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <h3 className="text-lg font-bold text-slate-800 truncate">
+                              <h3 className="text-lg font-bold text-foreground truncate">
                                 {pdf.pdf_title}
                               </h3>
-                              <p className="text-sm text-slate-500 mt-0.5 truncate">
+                              <p className="text-sm text-muted-foreground mt-0.5 truncate">
                                 Clique para visualizar ou baixar o documento original
                               </p>
                             </div>
-                            <div className="p-2.5 bg-slate-100 rounded-full text-slate-500 group-hover:bg-blue-600 group-hover:text-white transition-colors shrink-0">
+                            <div className="p-2.5 bg-muted rounded-full text-muted-foreground group-hover:bg-primary group-hover:text-primary-foreground transition-colors shrink-0">
                               <Download className="w-5 h-5" />
                             </div>
                           </a>
                         ))
                       ) : (
-                        <div className="text-center py-16 border-2 border-dashed border-slate-300 rounded-2xl bg-slate-50">
-                          <div className="bg-slate-200 p-4 rounded-full mb-4 inline-block">
-                            <FileText className="w-8 h-8 text-slate-500" />
+                        <div className="text-center py-16 border-2 border-dashed border-border rounded-2xl bg-muted/30">
+                          <div className="bg-muted p-4 rounded-full mb-4 inline-block">
+                            <FileText className="w-8 h-8 text-muted-foreground" />
                           </div>
-                          <p className="text-lg font-medium text-slate-600">
+                          <p className="text-lg font-medium text-foreground">
                             Nenhum documento disponível
                           </p>
-                          <p className="text-slate-500 mt-1">
+                          <p className="text-muted-foreground mt-1">
                             Os manuais e PDFs ainda não foram carregados para esta aeronave.
                           </p>
                         </div>
@@ -465,14 +465,14 @@ export default function AircraftDetails() {
                       <HandbookContent blocks={blocks} />
 
                       {role === 'aluno' && (
-                        <div className="mt-2 pt-6 border-t border-slate-100 flex justify-end">
+                        <div className="mt-2 pt-6 border-t border-border/50 flex justify-end">
                           <Button
                             onClick={handleToggleCompleted}
                             disabled={updatingProgress}
                             className={cn(
                               'gap-2 h-11 px-6 font-medium transition-all',
                               isSectionCompleted
-                                ? 'bg-slate-200 hover:bg-slate-300 text-slate-700'
+                                ? 'bg-muted hover:bg-muted/80 text-foreground'
                                 : 'bg-emerald-500 hover:bg-emerald-600 text-white',
                             )}
                           >

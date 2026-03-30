@@ -35,7 +35,7 @@ const PIE_COLORS = [
 
 export function HandbookContent({ blocks }: HandbookContentProps) {
   if (!blocks || blocks.length === 0) {
-    return <p className="text-slate-500 italic py-8 text-center">Nenhum dado disponível.</p>
+    return <p className="text-muted-foreground italic py-8 text-center">Nenhum dado disponível.</p>
   }
 
   return (
@@ -44,14 +44,14 @@ export function HandbookContent({ blocks }: HandbookContentProps) {
         switch (block.type) {
           case 'subsection_title':
             return (
-              <h3 key={index} className="text-2xl font-bold text-slate-800 mt-10 mb-4 first:mt-0">
+              <h3 key={index} className="text-2xl font-bold text-foreground mt-10 mb-4 first:mt-0">
                 {block.title}
               </h3>
             )
 
           case 'text':
             return (
-              <p key={index} className="text-slate-700 leading-relaxed text-lg">
+              <p key={index} className="text-muted-foreground leading-relaxed text-lg">
                 {block.content}
               </p>
             )
@@ -59,16 +59,16 @@ export function HandbookContent({ blocks }: HandbookContentProps) {
           case 'image':
             return (
               <div key={index} className="space-y-3">
-                <div className="rounded-xl overflow-hidden border border-slate-200 bg-slate-50 flex justify-center p-2">
+                <div className="rounded-xl overflow-hidden border border-border bg-muted/30 flex justify-center p-2">
                   <img
                     src={block.url}
                     alt={block.caption || 'Aircraft diagram'}
-                    className="max-w-full h-auto max-h-[400px] object-contain rounded-lg mix-blend-multiply"
+                    className="max-w-full h-auto max-h-[400px] object-contain rounded-lg dark:mix-blend-normal mix-blend-multiply"
                     loading="lazy"
                   />
                 </div>
                 {block.caption && (
-                  <p className="text-sm text-center text-slate-500 italic font-medium">
+                  <p className="text-sm text-center text-muted-foreground italic font-medium">
                     {block.caption}
                   </p>
                 )}
@@ -78,13 +78,13 @@ export function HandbookContent({ blocks }: HandbookContentProps) {
           case 'table':
             return (
               <div key={index} className="space-y-4">
-                <h3 className="text-xl font-bold text-slate-800">{block.title}</h3>
-                <div className="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm">
+                <h3 className="text-xl font-bold text-foreground">{block.title}</h3>
+                <div className="rounded-xl border border-border overflow-hidden bg-card shadow-sm">
                   <Table>
-                    <TableHeader className="bg-slate-50">
+                    <TableHeader className="bg-muted/50">
                       <TableRow>
                         {block.headers.map((header, i) => (
-                          <TableHead key={i} className="font-bold text-slate-700">
+                          <TableHead key={i} className="font-bold text-foreground">
                             {header}
                           </TableHead>
                         ))}
@@ -92,7 +92,7 @@ export function HandbookContent({ blocks }: HandbookContentProps) {
                     </TableHeader>
                     <TableBody>
                       {block.rows.map((row, i) => (
-                        <TableRow key={i} className="hover:bg-slate-50/50">
+                        <TableRow key={i} className="hover:bg-muted/30">
                           {row.map((cell, j) => (
                             <TableCell key={j} className={j === 0 ? 'font-semibold' : ''}>
                               {cell}
@@ -112,8 +112,8 @@ export function HandbookContent({ blocks }: HandbookContentProps) {
 
             return (
               <div key={index} className="space-y-4">
-                <h3 className="text-xl font-bold text-slate-800">{block.title}</h3>
-                <div className="w-full min-h-[350px] border border-slate-200 rounded-xl bg-slate-50/30 p-6 shadow-sm flex flex-col justify-center items-center">
+                <h3 className="text-xl font-bold text-foreground">{block.title}</h3>
+                <div className="w-full min-h-[350px] border border-border rounded-xl bg-card p-6 shadow-sm flex flex-col justify-center items-center">
                   <ChartContainer config={block.config} className="h-[300px] w-full">
                     {isPie ? (
                       <PieChart margin={{ top: 20, right: 20, left: 20, bottom: 20 }}>

@@ -25,8 +25,8 @@ export function HandbookSidebar({ activeSectionId, onSelect }: HandbookSidebarPr
 
   return (
     <div className="w-full lg:w-72 shrink-0 bg-card rounded-xl border border-border shadow-sm p-2">
-      <div className="p-3 pb-2 border-b border-slate-100 mb-2">
-        <h3 className="font-semibold text-sm text-slate-500 uppercase tracking-wider">
+      <div className="p-3 pb-2 border-b border-border/50 mb-2">
+        <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">
           Índice do Manual
         </h3>
       </div>
@@ -43,14 +43,14 @@ export function HandbookSidebar({ activeSectionId, onSelect }: HandbookSidebarPr
                 className={cn(
                   'justify-start font-medium transition-all shrink-0 whitespace-nowrap lg:whitespace-normal h-auto py-3',
                   isActive
-                    ? 'bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800 border border-blue-100'
-                    : 'text-slate-600 hover:text-primary hover:bg-slate-50 border border-transparent',
+                    ? 'bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary border border-primary/20'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50 border border-transparent',
                 )}
               >
                 <div
                   className={cn(
                     'mr-3 p-1.5 rounded-md transition-colors',
-                    isActive ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-400',
+                    isActive ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground',
                   )}
                 >
                   <Icon className="w-4 h-4" />
