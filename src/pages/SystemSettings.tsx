@@ -8,6 +8,8 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
 import { ImagePlus, Settings, Moon, Sun, Trash2, Save, Loader2, RotateCcw } from 'lucide-react'
+import { supabase } from '@/lib/supabase/client'
+import { toast } from 'sonner'
 
 export default function SystemSettings() {
   const { profile } = useAuth()
@@ -32,14 +34,34 @@ export default function SystemSettings() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const isAdmin = profile?.role === 'admin'
 
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onload = (event) => {
-        setLogoUrl(event.target?.result as string)
-      }
-      reader.readAsDataURL(file)
+    if (!file) return
+
+    // Preview locally
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      setLogoUrl(event.target?.result as string)
+    }
+    reader.readAsDataURL(file)
+
+    // Upload to Supabase
+    try {
+      const fileExt = file.name.split('.').pop()
+      const fileName = `logo-${Date.now()}.${fileExt}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('system_assets')
+        .upload(fileName, file, { upsert: true })
+
+      if (uploadError) throw uploadError
+
+      const { data } = supabase.storage.from('system_assets').getPublicUrl(fileName)
+
+      setLogoUrl(data.publicUrl)
+    } catch (error) {
+      console.error('Upload error:', error)
+      toast.error('Erro ao fazer upload da imagem.')
     }
   }
 

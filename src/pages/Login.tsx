@@ -51,7 +51,7 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4 transition-colors duration-300">
       <div className="w-full max-w-md animate-fade-in-up">
         <div className="flex justify-center mb-8">
           <div className="bg-primary/10 p-3 rounded-2xl">
@@ -59,12 +59,12 @@ export default function Login() {
           </div>
         </div>
 
-        <Card className="border-slate-200 shadow-lg">
+        <Card className="border-border shadow-lg bg-card text-card-foreground">
           <CardHeader className="space-y-1 text-center">
-            <CardTitle className="text-2xl font-bold tracking-tight text-slate-900">
+            <CardTitle className="text-2xl font-bold tracking-tight text-foreground">
               Bem-vindo de volta
             </CardTitle>
-            <CardDescription className="text-slate-500">
+            <CardDescription className="text-muted-foreground">
               Faça login no Pilot Ground-Handbook
             </CardDescription>
           </CardHeader>
@@ -79,7 +79,7 @@ export default function Login() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="bg-slate-50"
+                  className="bg-background"
                 />
               </div>
               <div className="space-y-2">
@@ -100,7 +100,7 @@ export default function Login() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="bg-slate-50"
+                  className="bg-background"
                 />
               </div>
             </CardContent>
@@ -108,9 +108,10 @@ export default function Login() {
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? 'Entrando...' : 'Entrar'}
               </Button>
-              <div className="text-sm text-center text-slate-500">
+              <div className="text-sm text-center text-muted-foreground">
                 Não tem uma conta?{' '}
                 <Link to="/register" className="text-primary hover:underline font-medium">
+                  {' '}
                   Registre-se
                 </Link>
               </div>
