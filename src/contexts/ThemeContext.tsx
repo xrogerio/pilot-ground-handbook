@@ -8,13 +8,23 @@ export interface MenuSection {
 }
 
 const DEFAULT_SECTIONS: MenuSection[] = [
-  { id: '1', title: 'Limitações' },
-  { id: '2', title: 'Procedimentos Normais' },
+  { id: '1', title: 'Geral' },
+  { id: '2', title: 'Limitações' },
   { id: '3', title: 'Procedimentos de Emergência' },
-  { id: '4', title: 'Desempenho' },
-  { id: '5', title: 'Peso e Balanceamento' },
+  { id: '4', title: 'Procedimentos Normais' },
+  { id: '5', title: 'Desempenho' },
+  { id: '6', title: 'Peso e Balanceamento' },
+  { id: '7', title: 'Descrição do Avião e Sistemas' },
+  { id: '8', title: 'Manuseio, Serviço e Manutenção' },
+  { id: '9', title: 'Suplementos' },
   { id: 'docs', title: 'Documentos Originais' },
 ]
+
+const DEFAULT_SETTINGS = {
+  title: 'Pilot Ground-Handbook',
+  subtitle: 'Voo Seguro',
+  primaryColor: '#1e293b',
+}
 
 interface ThemeContextData {
   logoUrl: string | null
@@ -30,6 +40,7 @@ interface ThemeContextData {
   menuSections: MenuSection[]
   setMenuSections: (sections: MenuSection[]) => void
   saveSettings: () => Promise<void>
+  resetDefaults: () => void
   isSaving: boolean
 }
 
@@ -37,9 +48,9 @@ const ThemeContext = createContext<ThemeContextData | undefined>(undefined)
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [logoUrl, setLogoUrl] = useState<string | null>(null)
-  const [title, setTitle] = useState('Pilot Ground-Handbook')
-  const [subtitle, setSubtitle] = useState('Voo Seguro')
-  const [primaryColor, setPrimaryColor] = useState('#1e293b')
+  const [title, setTitle] = useState(DEFAULT_SETTINGS.title)
+  const [subtitle, setSubtitle] = useState(DEFAULT_SETTINGS.subtitle)
+  const [primaryColor, setPrimaryColor] = useState(DEFAULT_SETTINGS.primaryColor)
   const [isDarkMode, setIsDarkMode] = useState(false)
   const [menuSections, setMenuSections] = useState<MenuSection[]>(DEFAULT_SECTIONS)
   const [isSaving, setIsSaving] = useState(false)
@@ -63,7 +74,16 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     // Mock save
     await new Promise((resolve) => setTimeout(resolve, 800))
     setIsSaving(false)
-    toast.success('Configurações do sistema salvas com sucesso!')
+    toast.success('Configurações salvas com sucesso!')
+  }
+
+  const resetDefaults = () => {
+    setLogoUrl(null)
+    setTitle(DEFAULT_SETTINGS.title)
+    setSubtitle(DEFAULT_SETTINGS.subtitle)
+    setPrimaryColor(DEFAULT_SETTINGS.primaryColor)
+    setMenuSections(DEFAULT_SECTIONS)
+    toast.success('Configurações restauradas para o padrão.')
   }
 
   return React.createElement(
@@ -83,6 +103,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         menuSections,
         setMenuSections,
         saveSettings,
+        resetDefaults,
         isSaving,
       },
     },

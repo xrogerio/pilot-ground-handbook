@@ -195,14 +195,12 @@ export default function Layout() {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              {isAdmin && (
-                <DropdownMenuItem asChild>
-                  <Link to="/settings" className="cursor-pointer w-full flex items-center">
-                    <Settings className="w-4 h-4 mr-2" />
-                    Configurações do Sistema
-                  </Link>
-                </DropdownMenuItem>
-              )}
+              <DropdownMenuItem asChild>
+                <Link to="/settings" className="cursor-pointer w-full flex items-center">
+                  <Settings className="w-4 h-4 mr-2" />
+                  {isAdmin ? 'Configurações do Sistema' : 'Configurações de Aparência'}
+                </Link>
+              </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => setIsProfileDialogOpen(true)}
                 className="cursor-pointer"
@@ -251,7 +249,9 @@ export default function Layout() {
           {isSettings && (
             <>
               <ChevronRight className="w-4 h-4 mx-1 opacity-50" />
-              <span className="text-primary">Configurações do Sistema</span>
+              <span className="text-primary">
+                {isAdmin ? 'Configurações do Sistema' : 'Configurações de Aparência'}
+              </span>
             </>
           )}
           {isDetails && currentAircraft && (
