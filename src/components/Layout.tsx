@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { useAppContext } from '@/contexts/AppContext'
 import { useAuth } from '@/hooks/use-auth'
+import { useThemeContext } from '@/contexts/ThemeContext'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -30,6 +31,7 @@ import { toast } from 'sonner'
 export default function Layout() {
   const { user, profile, isRecoveryMode, loading, signOut } = useAuth()
   const { aircrafts } = useAppContext()
+  const { logoUrl, title, subtitle } = useThemeContext()
   const location = useLocation()
 
   const [newStudentsCount, setNewStudentsCount] = useState(0)
@@ -37,7 +39,6 @@ export default function Layout() {
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false)
   const isAdmin = profile?.role === 'admin'
 
-  // Trigger password change dialog automatically if user enters from a recovery link
   useEffect(() => {
     if (isRecoveryMode) {
       setIsPasswordDialogOpen(true)
@@ -70,7 +71,6 @@ export default function Layout() {
 
     fetchNewStudentsCount()
 
-    // Realtime listener for new registrations
     const channel = supabase
       .channel('public:users')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'users' }, (payload) => {
@@ -96,7 +96,7 @@ export default function Layout() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     )
@@ -106,30 +106,45 @@ export default function Layout() {
     return <Navigate to="/login" state={{ from: location }} replace />
   }
 
-  // Basic breadcrumb generation based on path
   const pathParts = location.pathname.split('/').filter(Boolean)
   const isDetails = pathParts[0] === 'aircraft' && pathParts[1]
   const isStudents = pathParts[0] === 'students'
   const isCompare = pathParts[0] === 'compare'
+  const isSettings = pathParts[0] === 'settings'
   const currentAircraft = isDetails ? aircrafts.find((a) => a.id === pathParts[1]) : null
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-900 selection:bg-blue-100">
-      <header className="sticky top-0 z-50 bg-white border-b border-slate-200 shadow-sm px-4 md:px-6 py-3 flex justify-between items-center transition-all">
+    <div className="min-h-screen bg-background flex flex-col font-sans text-foreground selection:bg-primary/20 transition-colors duration-300">
+      <header className="sticky top-0 z-50 bg-card border-b border-border shadow-sm px-4 md:px-6 py-3 flex justify-between items-center transition-all duration-300">
         <Link
           to="/"
           className="flex items-center gap-2 font-bold text-lg md:text-xl text-primary group"
         >
-          <div className="bg-primary/5 p-2 rounded-lg group-hover:bg-primary/10 transition-colors">
-            <Plane className="w-5 h-5 text-blue-600" />
+          {logoUrl ? (
+            <img
+              src={logoUrl}
+              alt="Logo"
+              className="w-8 h-8 object-contain transition-transform group-hover:scale-105"
+            />
+          ) : (
+            <div className="bg-primary/10 p-2 rounded-lg group-hover:bg-primary/20 transition-colors">
+              <Plane className="w-5 h-5 text-primary" />
+            </div>
+          )}
+          <div className="flex flex-col justify-center">
+            <span className="hidden sm:inline tracking-tight leading-tight">{title}</span>
+            <span className="sm:hidden tracking-tight leading-tight">{title.substring(0, 3)}</span>
+            {subtitle && (
+              <span className="text-[10px] font-normal text-muted-foreground leading-none mt-0.5">
+                {subtitle}
+              </span>
+            )}
           </div>
-          <span className="hidden sm:inline tracking-tight">Pilot Ground-Handbook</span>
-          <span className="sm:hidden tracking-tight">PGH</span>
         </Link>
         <div className="flex items-center gap-3 sm:gap-4">
           <Link
             to="/compare"
-            className="flex items-center gap-2 text-sm font-medium text-slate-600 bg-slate-50 py-1.5 px-3 rounded-full border border-slate-200 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 transition-colors"
+            className="flex items-center gap-2 text-sm font-medium text-muted-foreground bg-secondary py-1.5 px-3 rounded-full border border-border hover:bg-secondary/80 hover:text-foreground transition-colors"
           >
             <BarChart2 className="w-4 h-4 text-emerald-500" />
             <span className="hidden md:inline">Comparativo</span>
@@ -139,7 +154,7 @@ export default function Layout() {
             <Link
               to="/students"
               onClick={handleStudentsClick}
-              className="relative flex items-center gap-2 text-sm font-medium text-slate-600 bg-slate-50 py-1.5 px-3 rounded-full border border-slate-200 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 transition-colors"
+              className="relative flex items-center gap-2 text-sm font-medium text-muted-foreground bg-secondary py-1.5 px-3 rounded-full border border-border hover:bg-secondary/80 hover:text-foreground transition-colors"
             >
               <Users className="w-4 h-4" />
               <span className="hidden md:inline">Alunos</span>
@@ -155,12 +170,12 @@ export default function Layout() {
             <DropdownMenuTrigger asChild>
               <Button
                 variant="outline"
-                className="flex items-center gap-2 text-sm font-medium text-slate-600 bg-slate-50 py-1 px-1.5 pl-3 rounded-full border border-slate-200 hover:bg-slate-100 h-10"
+                className="flex items-center gap-2 text-sm font-medium text-muted-foreground bg-secondary py-1 px-1.5 pl-3 rounded-full border border-border hover:bg-secondary/80 h-10"
               >
                 <span className="hidden lg:inline truncate max-w-[200px]">
                   {profile?.name || user.email?.split('@')[0]}
                 </span>
-                <Avatar className="h-7 w-7 bg-white">
+                <Avatar className="h-7 w-7 bg-card">
                   <AvatarImage src={profile?.avatar_url || ''} className="object-cover" />
                   <AvatarFallback className="bg-primary/10 text-primary text-xs">
                     {(profile?.name || user.email || 'U').charAt(0).toUpperCase()}
@@ -180,11 +195,19 @@ export default function Layout() {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
+              {isAdmin && (
+                <DropdownMenuItem asChild>
+                  <Link to="/settings" className="cursor-pointer w-full flex items-center">
+                    <Settings className="w-4 h-4 mr-2" />
+                    Configurações do Sistema
+                  </Link>
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem
                 onClick={() => setIsProfileDialogOpen(true)}
                 className="cursor-pointer"
               >
-                <Settings className="w-4 h-4 mr-2" />
+                <UserIcon className="w-4 h-4 mr-2" />
                 Meu Perfil
               </DropdownMenuItem>
               <DropdownMenuItem
@@ -197,7 +220,7 @@ export default function Layout() {
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() => signOut()}
-                className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer"
+                className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/50 cursor-pointer"
               >
                 <LogOut className="w-4 h-4 mr-2" />
                 Sair
@@ -208,8 +231,8 @@ export default function Layout() {
       </header>
 
       {/* Breadcrumbs */}
-      <div className="bg-white border-b border-slate-200 px-4 md:px-6 py-2.5">
-        <nav className="flex items-center text-sm font-medium text-slate-500">
+      <div className="bg-card border-b border-border px-4 md:px-6 py-2.5 transition-colors duration-300">
+        <nav className="flex items-center text-sm font-medium text-muted-foreground">
           <Link to="/" className="hover:text-primary transition-colors">
             Início
           </Link>
@@ -225,6 +248,12 @@ export default function Layout() {
               <span className="text-primary">Comparativo de Aeronaves</span>
             </>
           )}
+          {isSettings && (
+            <>
+              <ChevronRight className="w-4 h-4 mx-1 opacity-50" />
+              <span className="text-primary">Configurações do Sistema</span>
+            </>
+          )}
           {isDetails && currentAircraft && (
             <>
               <ChevronRight className="w-4 h-4 mx-1 opacity-50" />
@@ -238,11 +267,19 @@ export default function Layout() {
         <Outlet />
       </main>
 
-      <footer className="border-t border-slate-200 bg-white py-8 text-center text-slate-500 text-sm">
+      <footer className="border-t border-border bg-card py-8 text-center text-muted-foreground text-sm transition-colors duration-300">
         <div className="flex flex-col items-center gap-2">
-          <Plane className="w-4 h-4 text-slate-300" />
+          {logoUrl ? (
+            <img
+              src={logoUrl}
+              alt="Logo"
+              className="w-5 h-5 object-contain opacity-50 grayscale hover:grayscale-0 transition-all"
+            />
+          ) : (
+            <Plane className="w-4 h-4 opacity-50" />
+          )}
           <p className="font-medium">
-            Voo Seguro. <span className="text-slate-400 font-normal ml-1">v0.0.1</span>
+            {subtitle || title} <span className="opacity-70 font-normal ml-1">v0.0.1</span>
           </p>
         </div>
       </footer>
