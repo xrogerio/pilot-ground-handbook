@@ -21,47 +21,88 @@ interface TableBuilderProps {
 export function TableBuilder({ table, onChange }: TableBuilderProps) {
   if (!table) return null
 
+  // Safely normalize the table data, as raw JSON with {nome, colunas, linhas}
+  // or objects inside rows might be passed from direct DB seeds.
+  const safeTitle = table.title || (table as any).nome || ''
+  const safeHeaders = Array.isArray(table.headers)
+    ? table.headers
+    : Array.isArray((table as any).colunas)
+      ? (table as any).colunas
+      : ['Coluna 1']
+
+  const rawRows = Array.isArray(table.rows)
+    ? table.rows
+    : Array.isArray((table as any).linhas)
+      ? (table as any).linhas
+      : [['']]
+
+  const safeRows = rawRows
+    .map((row) => {
+      if (Array.isArray(row)) return row
+      if (typeof row === 'object' && row !== null) {
+        const valsByHeader = safeHeaders.map((h) =>
+          row[h] !== undefined ? String(row[h]) : undefined,
+        )
+        if (valsByHeader.some((v) => v !== undefined)) {
+          return valsByHeader.map((v) => v || '')
+        }
+        return Object.values(row).map(String)
+      }
+      return [String(row)]
+    })
+    .map((row) => {
+      const r = [...row]
+      while (r.length < safeHeaders.length) r.push('')
+      return r.slice(0, safeHeaders.length)
+    })
+
+  const safeTable = {
+    title: safeTitle,
+    headers: safeHeaders,
+    rows: safeRows,
+  }
+
   const addColumn = () => {
     onChange({
-      ...table,
-      headers: [...table.headers, `Coluna ${table.headers.length + 1}`],
-      rows: table.rows.map((row) => [...row, '']),
+      ...safeTable,
+      headers: [...safeTable.headers, `Coluna ${safeTable.headers.length + 1}`],
+      rows: safeTable.rows.map((row) => [...row, '']),
     })
   }
 
   const removeColumn = (index: number) => {
     onChange({
-      ...table,
-      headers: table.headers.filter((_, i) => i !== index),
-      rows: table.rows.map((row) => row.filter((_, i) => i !== index)),
+      ...safeTable,
+      headers: safeTable.headers.filter((_, i) => i !== index),
+      rows: safeTable.rows.map((row) => row.filter((_, i) => i !== index)),
     })
   }
 
   const addRow = () => {
     onChange({
-      ...table,
-      rows: [...table.rows, new Array(table.headers.length).fill('')],
+      ...safeTable,
+      rows: [...safeTable.rows, new Array(safeTable.headers.length).fill('')],
     })
   }
 
   const removeRow = (index: number) => {
     onChange({
-      ...table,
-      rows: table.rows.filter((_, i) => i !== index),
+      ...safeTable,
+      rows: safeTable.rows.filter((_, i) => i !== index),
     })
   }
 
   const updateHeader = (index: number, value: string) => {
-    const newHeaders = [...table.headers]
+    const newHeaders = [...safeTable.headers]
     newHeaders[index] = value
-    onChange({ ...table, headers: newHeaders })
+    onChange({ ...safeTable, headers: newHeaders })
   }
 
   const updateCell = (rowIndex: number, colIndex: number, value: string) => {
-    const newRows = [...table.rows]
+    const newRows = [...safeTable.rows]
     newRows[rowIndex] = [...newRows[rowIndex]]
     newRows[rowIndex][colIndex] = value
-    onChange({ ...table, rows: newRows })
+    onChange({ ...safeTable, rows: newRows })
   }
 
   return (
@@ -77,8 +118,8 @@ export function TableBuilder({ table, onChange }: TableBuilderProps) {
           <div className="flex-1 space-y-2">
             <Label>Título da Tabela</Label>
             <Input
-              value={table.title}
-              onChange={(e) => onChange({ ...table, title: e.target.value })}
+              value={safeTable.title}
+              onChange={(e) => onChange({ ...safeTable, title: e.target.value })}
               className="bg-white"
             />
           </div>
@@ -96,7 +137,7 @@ export function TableBuilder({ table, onChange }: TableBuilderProps) {
           <Table>
             <TableHeader className="bg-slate-50">
               <TableRow>
-                {table.headers.map((h, i) => (
+                {safeTable.headers.map((h, i) => (
                   <TableHead key={i} className="min-w-[150px] p-2">
                     <div className="flex items-center gap-2">
                       <Input
@@ -104,7 +145,7 @@ export function TableBuilder({ table, onChange }: TableBuilderProps) {
                         onChange={(e) => updateHeader(i, e.target.value)}
                         className="h-8 bg-white"
                       />
-                      {table.headers.length > 1 && (
+                      {safeTable.headers.length > 1 && (
                         <Button
                           variant="ghost"
                           size="icon"
@@ -121,7 +162,7 @@ export function TableBuilder({ table, onChange }: TableBuilderProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {table.rows.map((row, rowIndex) => (
+              {safeTable.rows.map((row, rowIndex) => (
                 <TableRow key={rowIndex}>
                   {row.map((cell, colIndex) => (
                     <TableCell key={colIndex} className="p-2">
