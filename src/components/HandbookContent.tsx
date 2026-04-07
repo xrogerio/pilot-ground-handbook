@@ -91,15 +91,27 @@ export function HandbookContent({ blocks }: HandbookContentProps) {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {block.rows.map((row, i) => (
-                        <TableRow key={i} className="hover:bg-muted/30">
-                          {row.map((cell, j) => (
-                            <TableCell key={j} className={j === 0 ? 'font-semibold' : ''}>
-                              {cell}
-                            </TableCell>
-                          ))}
-                        </TableRow>
-                      ))}
+                      {block.rows.map((row: any, i: number) => {
+                        const cells = Array.isArray(row)
+                          ? row
+                          : typeof row === 'object' && row !== null
+                            ? block.headers.map((header: string, index: number) => {
+                                if (row[header] !== undefined) return row[header]
+                                const values = Object.values(row)
+                                return values[index] !== undefined ? values[index] : ''
+                              })
+                            : []
+
+                        return (
+                          <TableRow key={i} className="hover:bg-muted/30">
+                            {cells.map((cell: any, j: number) => (
+                              <TableCell key={j} className={j === 0 ? 'font-semibold' : ''}>
+                                {String(cell)}
+                              </TableCell>
+                            ))}
+                          </TableRow>
+                        )
+                      })}
                     </TableBody>
                   </Table>
                 </div>
